@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "325730203077",
+    "project_id": "quickcard-9ce46",
+    "storage_bucket": "quickcard-9ce46.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:325730203077:android:5bfe913a54a1fa7c2747ac",
+        "android_client_info": {
+          "package_name": "volosyuk.easybizcard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3s7dpH3oxLmNxMgP6C1r1dV-Cqz_IsL0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:325730203077:android:b6127a10f1c5ba982747ac",
+        "android_client_info": {
+          "package_name": "volosyuk.quickcard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3s7dpH3oxLmNxMgP6C1r1dV-Cqz_IsL0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
