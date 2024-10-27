@@ -6,4 +6,7 @@
     </style>
 
     <style name="Theme.EasyBizCard" parent="Base.Theme.EasyBizCard" />
+
+    <!-- Новый стиль для кастомизации AlertDialog -->
 </resources>
+

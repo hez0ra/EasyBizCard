@@ -1,10 +1,12 @@
 package volosyuk.easybizcard;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -28,12 +30,19 @@ public class RegisterActivity extends AppCompatActivity {
 
     EditText email, password, passwordConfirm;
     Button register;
+    TextView toLogin;
     private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        EdgeToEdge.enable(this);
         setContentView(R.layout.activity_register);
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.register), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
 
         mAuth = FirebaseAuth.getInstance();
 
@@ -41,6 +50,7 @@ public class RegisterActivity extends AppCompatActivity {
         password = findViewById(R.id.register_password);
         passwordConfirm = findViewById(R.id.register_confirm_password);
         register = findViewById(R.id.register_button);
+        toLogin = findViewById(R.id.register_to_login);
 
         register.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -48,7 +58,18 @@ public class RegisterActivity extends AppCompatActivity {
                 register();
             }
         });
+
+        toLogin.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+                startActivity(intent);
+                finish();
+            }
+        });
     }
+
+    //TODO: добавить уведомление о конеретной проблеме (слишком короткий пароль или пустое поле)
 
     private void register(){
         final String email = this.email.getText().toString();
@@ -60,20 +81,21 @@ public class RegisterActivity extends AppCompatActivity {
         Matcher matcher = pattern.matcher(email);
 
         if(matcher.matches() && password.length() >= 6 && passwordConfirm.equals(password)){
-            mAuth.createUserWithEmailAndPassword(email, password)
-                    .addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                        @Override
-                        public void onComplete(@NonNull Task<AuthResult> task) {
-                            if (task.isSuccessful()) {
-                                Toast.makeText(RegisterActivity.this, "Аккаунт создан.",
-                                        Toast.LENGTH_SHORT).show();
-                            } else {
-                                // If sign in fails, display a message to the user.
-                                Toast.makeText(RegisterActivity.this, "Ошибка авторизации.",
-                                        Toast.LENGTH_SHORT).show();
-                            }
-                        }
-                    });
+            mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+                @Override
+                public void onComplete(@NonNull Task<AuthResult> task) {
+                    final Intent intent;
+                    if(task.isSuccessful()){
+                        intent = new Intent(getApplicationContext(), ProfileActivity.class);
+                        startActivity(intent);
+                        finish();
+                    }
+                    else{
+                        Toast toast = Toast.makeText(getApplicationContext(), "Данный email уже используется", Toast.LENGTH_SHORT);
+                        toast.show();
+                    }
+                }
+            });
         }
     }
 }
