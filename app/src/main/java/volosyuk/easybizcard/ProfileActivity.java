@@ -266,6 +266,7 @@ public class ProfileActivity extends AppCompatActivity {
         return Bitmap.createBitmap(img, 0, 0, img.getWidth(), img.getHeight(), matrix, true);
     }
 
+
     private void uploadImageToFirebase(Bitmap bitmap) {
         FirebaseUser currentUser = mAuth.getCurrentUser();
         if (currentUser != null && bitmap != null) {
