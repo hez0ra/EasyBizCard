@@ -1,8 +1,9 @@
 package volosyuk.easybizcard.models;
 
+import java.io.Serializable;
 import java.util.Map;
 
-public class BusinessCard {
+public class BusinessCard implements Serializable {
     public String cardId;
     public String userId;
     public String title;

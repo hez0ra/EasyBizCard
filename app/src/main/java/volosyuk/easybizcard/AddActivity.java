@@ -13,7 +13,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 public class AddActivity extends AppCompatActivity {
 
-    ImageButton toProfile;
+    ImageButton toProfile, toMyCards;
     Button sample1, sample2;
 
     @Override
@@ -28,6 +28,7 @@ public class AddActivity extends AppCompatActivity {
         });
 
         toProfile = findViewById(R.id.add_to_profile);
+        toMyCards = findViewById(R.id.add_to_my_cards);
         sample1 = findViewById(R.id.add_sample_1);
         sample2 = findViewById(R.id.add_sample_2);
 
@@ -39,6 +40,11 @@ public class AddActivity extends AppCompatActivity {
 
         toProfile.setOnClickListener(v ->{
             Intent intent = new Intent(this, ProfileActivity.class);
+            startActivity(intent);
+        });
+
+        toMyCards.setOnClickListener(v ->{
+            Intent intent = new Intent(this, MyCardsActivity.class);
             startActivity(intent);
         });
 
