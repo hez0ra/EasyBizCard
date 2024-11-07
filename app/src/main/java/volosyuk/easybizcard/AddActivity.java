@@ -35,13 +35,11 @@ public class AddActivity extends AppCompatActivity {
             Intent intent = new Intent(this, EditActivity.class);
             intent.putExtra(EditActivity.EXTRA_LAYOUT, 1);
             startActivity(intent);
-            finish();
         });
 
         toProfile.setOnClickListener(v ->{
             Intent intent = new Intent(this, ProfileActivity.class);
             startActivity(intent);
-            finish();
         });
 
     }

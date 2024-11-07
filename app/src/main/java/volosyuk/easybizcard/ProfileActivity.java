@@ -81,7 +81,7 @@ public class ProfileActivity extends AppCompatActivity {
         avatar = findViewById(R.id.profile_avatar);
 
         progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Uploading image...");
+        progressDialog.setMessage("Загрузка изображения...");
         progressDialog.setCancelable(false);  // Запрещаем отмену загрузки
 
         user = mAuth.getCurrentUser();
@@ -105,10 +105,6 @@ public class ProfileActivity extends AppCompatActivity {
             Intent intent = new Intent(this, AddActivity.class);
             startActivity(intent);
             finish();
-        });
-
-        changePassword.setOnClickListener(v -> {
-            Toast.makeText(this, "Change Password Clicked", Toast.LENGTH_SHORT).show();
         });
 
         signOut.setOnClickListener(v -> {

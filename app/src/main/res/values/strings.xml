@@ -2,5 +2,5 @@
     <string name="app_name">EasyBizCard</string>
     <string name="user_image">EasyBizCard</string>
     <string name="image_description">EasyBizCard</string>
-
+    <string name="card_image_desc">Business card image</string>
 </resources>

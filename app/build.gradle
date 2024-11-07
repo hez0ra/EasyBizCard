@@ -31,6 +31,8 @@ android {
 
 dependencies {
 
+    implementation libs.glide  // или последняя доступная версия
+    annotationProcessor libs.compiler  // если используете Java
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
@@ -38,10 +40,12 @@ dependencies {
     implementation libs.firebase.auth
     implementation(platform(libs.firebase.bom))
     implementation libs.firebase.storage
+    implementation(libs.firebase.firestore)
     implementation(libs.play.services.auth)
     implementation libs.circleimageview
     implementation libs.picasso
     implementation libs.exifinterface
+    implementation libs.firebase.database
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

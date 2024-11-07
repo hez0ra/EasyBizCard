@@ -29,9 +29,14 @@
             android:id="@+id/sample_1_edit_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:layout_marginTop="16dp"
+            android:layout_marginEnd="8dp"
             android:hint="Ваш заголовок"
             android:textSize="24sp"
+            android:backgroundTint="@color/second"
+            android:textColor="@color/text"
+            android:textColorHint="@color/second"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
             app:layout_constraintStart_toStartOf="parent"
@@ -41,8 +46,13 @@
             android:id="@+id/sample_1_edit_description"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
             android:layout_marginTop="16dp"
+            android:layout_marginEnd="8dp"
             android:hint="Основной текст"
+            android:backgroundTint="@color/second"
+            android:textColor="@color/text"
+            android:textColorHint="@color/second"
             app:layout_constraintBottom_toTopOf="@+id/sample_1_edit_links"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
@@ -70,12 +80,17 @@
                 android:id="@+id/sample_1_edit_number"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:hint="+375-00-000-00-00" />
+                android:backgroundTint="@color/second"
+                android:textColor="@color/text"
+                android:textColorHint="@color/second"
+                android:hint="+375-XX-XXX-XX-XX" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginVertical="8dp"
+                android:backgroundTint="@color/second"
+                android:textColor="@color/text"
                 android:background="@color/black" />
 
             <TextView
@@ -87,6 +102,9 @@
                 android:id="@+id/sample_1_edit_email"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:backgroundTint="@color/second"
+                android:textColor="@color/text"
+                android:textColorHint="@color/second"
                 android:hint="example@gmail.com" />
 
             <View
@@ -177,6 +195,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:hint="https://example.com"
+                android:backgroundTint="@color/second"
+                android:textColorHint="@color/second"
                 android:textColor="#0000FF" />
 
         </LinearLayout>
@@ -185,8 +205,9 @@
             android:id="@+id/sample_1_edit_save"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Создать"
+            android:layout_marginBottom="16dp"
             android:backgroundTint="@color/main"
+            android:text="Создать"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent" />

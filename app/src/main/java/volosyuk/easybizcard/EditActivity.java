@@ -1,6 +1,7 @@
 package volosyuk.easybizcard;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -9,6 +10,9 @@ import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
@@ -29,15 +33,16 @@ import androidx.exifinterface.media.ExifInterface;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.DocumentReference;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
-import com.squareup.picasso.Picasso;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 
@@ -55,6 +60,12 @@ public class EditActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private FirebaseStorage storage;
     private ProgressDialog progressDialog;
+    private Map<String, String> links = new HashMap<>();
+    private String imageUrl;
+    private Bitmap selectedBitmap;
+    private FirebaseFirestore db;
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -67,41 +78,63 @@ public class EditActivity extends AppCompatActivity {
                 ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.sample_1_edit), (v, insets) -> {
                     Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
                     v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-                    image = findViewById(R.id.sample_1_edit_image);
-                    title = findViewById(R.id.sample_1_edit_title);
-                    description = findViewById(R.id.sample_1_edit_description);
-                    number = findViewById(R.id.sample_1_edit_number);
-                    email = findViewById(R.id.sample_1_edit_email);
-                    site = findViewById(R.id.sample_1_edit_site);
-
-                    whatsapp = findViewById(R.id.sample_1_edit_links_whatsapp);
-                    viber = findViewById(R.id.sample_1_edit_links_viber);
-                    vkontakte = findViewById(R.id.sample_1_edit_links_vkontakte);
-                    instagram = findViewById(R.id.sample_1_edit_links_instagram);
-                    facebook = findViewById(R.id.sample_1_edit_links_facebook);
-                    telegram = findViewById(R.id.sample_1_edit_links_telegram);
-                    save = findViewById(R.id.sample_1_edit_save);
-
-                    image.setOnClickListener(view -> {
-                        if (ContextCompat.checkSelfPermission(EditActivity.this,
-                                Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                            openGallery();
-                        } else {
-                            requestStoragePermission();
-                        }
-                    });
-
                     return insets;
                 });
+                image = findViewById(R.id.sample_1_edit_image);
+                title = findViewById(R.id.sample_1_edit_title);
+                description = findViewById(R.id.sample_1_edit_description);
+                number = findViewById(R.id.sample_1_edit_number);
+                email = findViewById(R.id.sample_1_edit_email);
+                site = findViewById(R.id.sample_1_edit_site);
+                whatsapp = findViewById(R.id.sample_1_edit_links_whatsapp);
+                viber = findViewById(R.id.sample_1_edit_links_viber);
+                vkontakte = findViewById(R.id.sample_1_edit_links_vkontakte);
+                instagram = findViewById(R.id.sample_1_edit_links_instagram);
+                facebook = findViewById(R.id.sample_1_edit_links_facebook);
+                telegram = findViewById(R.id.sample_1_edit_links_telegram);
+                save = findViewById(R.id.sample_1_edit_save);
+
+                image.setOnClickListener(view -> {
+                    if (ContextCompat.checkSelfPermission(EditActivity.this,
+                            Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                        openGallery();
+                    } else {
+                        requestStoragePermission();
+                    }
+                });
+
+                save.setOnClickListener(view -> {
+                    if (validateInputs()) {
+                        // Сначала загружаем изображение на Firebase
+                        uploadImageToFirebase(selectedBitmap, success -> {
+                            if (success) {
+                                // Затем сохраняем визитку в базе данных
+                                saveBusinessCardToDatabase(imageUrl);
+                            }
+                        });
+                    } else {
+                        Toast.makeText(this, "Пожалуйста, исправьте ошибки", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+
+                whatsapp.setOnClickListener(view -> showLinkInputDialog(whatsapp));
+                telegram.setOnClickListener(view -> showLinkInputDialog(telegram));
+                viber.setOnClickListener(view -> showLinkInputDialog(viber));
+                vkontakte.setOnClickListener(view -> showLinkInputDialog(vkontakte));
+                instagram.setOnClickListener(view -> showLinkInputDialog(instagram));
+                facebook.setOnClickListener(view -> showLinkInputDialog(facebook));
+
                 break;
             default:
                 break;
         }
+        db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
         storage = FirebaseStorage.getInstance();
         storageRef = storage.getReference();
         progressDialog = new ProgressDialog(this);
-        progressDialog.setMessage("Uploading image...");
+        progressDialog.setMessage("Загрузка изображения...");
         progressDialog.setCancelable(false);  // Запрещаем отмену загрузки
     }
 
@@ -112,10 +145,9 @@ public class EditActivity extends AppCompatActivity {
                     Uri selectedImageUri = result.getData().getData();
                     if (selectedImageUri != null) {
                         try {
-                            Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
-                            bitmap = rotateImageIfRequired(selectedImageUri, bitmap);
-                            image.setImageBitmap(bitmap);
-                            uploadImageToFirebase(bitmap);  // Запуск загрузки
+                            selectedBitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), selectedImageUri);
+                            selectedBitmap = rotateImageIfRequired(selectedImageUri, selectedBitmap);
+                            image.setImageBitmap(selectedBitmap);  // Устанавливаем изображение без загрузки на Firebase
                         } catch (IOException e) {
                             e.printStackTrace();
                             Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
@@ -159,35 +191,30 @@ public class EditActivity extends AppCompatActivity {
         galleryLauncher.launch(intent);
     }
 
-    private void uploadImageToFirebase(Bitmap bitmap) {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser != null && bitmap != null) {
-            StorageReference userImageRef = storageRef.child("users/" + currentUser.getUid() + "/business cards/");
+    private void uploadImageToFirebase(Bitmap bitmap, OnSuccessListener<Boolean> onComplete) {
+        if (mAuth.getCurrentUser() != null && bitmap != null) {
+            StorageReference userImageRef = storageRef.child("users/" + mAuth.getCurrentUser().getUid() + "/business_cards/" + System.currentTimeMillis() + ".jpeg");
 
-            // Сохранение изображения в ByteArrayOutputStream
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             bitmap.compress(Bitmap.CompressFormat.JPEG, 100, baos);
             byte[] data = baos.toByteArray();
 
-            progressDialog.show();  // Показываем диалог загрузки
+            progressDialog.show();
 
             userImageRef.putBytes(data)
-                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
-                        @Override
-                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
-                            progressDialog.dismiss();  // Скрываем диалог при успешной загрузке
-                            Toast.makeText(EditActivity.this, "Изображение загружено", Toast.LENGTH_SHORT).show();
-                        }
-                    }).addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            progressDialog.dismiss();  // Скрываем диалог при ошибке
-                            Toast.makeText(EditActivity.this, "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show();
-                        }
+                    .addOnSuccessListener(taskSnapshot -> userImageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        imageUrl = uri.toString();
+                        progressDialog.dismiss();
+                        onComplete.onSuccess(true);
+                    })).addOnFailureListener(e -> {
+                        progressDialog.dismiss();
+                        Toast.makeText(EditActivity.this, "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show();
+                        onComplete.onSuccess(false);
                     });
+        } else {
+            onComplete.onSuccess(false);
         }
     }
-
 
     private void requestStoragePermission() {
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_CODE);
@@ -205,6 +232,131 @@ public class EditActivity extends AppCompatActivity {
         }
     }
 
+    private void showLinkInputDialog(ImageButton button) {
+        // Создаём View для диалога
+        LayoutInflater inflater = LayoutInflater.from(this);
+        View dialogView = inflater.inflate(R.layout.dialog_link_input, null);
+        EditText inputLink = dialogView.findViewById(R.id.input_link);
+        String linkKey = getLinkKey(button);
+        String existingLink = links.get(linkKey);
+        if (existingLink != null) {
+            inputLink.setText(existingLink);  // Заполняем EditText существующей ссылкой
+        }
 
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Введите ссылку")
+                .setView(dialogView)
+                .setPositiveButton("Сохранить", (dialog, which) -> {
+                    String link = inputLink.getText().toString().trim();
+                    if (!link.isEmpty()) {
+                        // Здесь можно сохранить ссылку для конкретной кнопки
+                        saveLinkForButton(button, link);
+                    } else {
+                        Toast.makeText(this, "Ссылка не может быть пустой", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Отмена", null)
+                .show();
+    }
+
+    private String getLinkKey(ImageButton button) {
+        if (button == whatsapp) return "whatsapp";
+        if (button == telegram) return "telegram";
+        if (button == viber) return "viber";
+        if (button == vkontakte) return "vkontakte";
+        if (button == instagram) return "instagram";
+        if (button == facebook) return "facebook";
+        return "";
+    }
+
+    // Метод для сохранения ссылки (пример)
+    private void saveLinkForButton(ImageButton button, String link) {
+        if (button == whatsapp) {
+            links.put("whatsapp", link);
+        } else if (button == telegram) {
+            links.put("telegram", link);
+        } else if (button == viber) {
+            links.put("viber", link);
+        } else if (button == vkontakte) {
+            links.put("vkontakte", link);
+        } else if (button == instagram) {
+            links.put("instagram", link);
+        } else if (button == facebook) {
+            links.put("facebook", link);
+        }
+    }
+
+    private boolean validateInputs() {
+        // Проверка заголовка
+        if (title.getText().toString().trim().isEmpty()) {
+            title.setError("Заголовок обязателен");
+            title.requestFocus();
+            return false;
+        }
+
+        // Проверка описания
+        if (description.getText().toString().trim().isEmpty()) {
+            description.setError("Описание обязательно");
+            description.requestFocus();
+            return false;
+        }
+
+        // Проверка номера телефона
+        if (!number.getText().toString().matches("^\\+?375\\s?[\\-\\(]?\\d{2}[\\-\\)]?\\s?\\d{3}[\\s\\-]?\\d{2}[\\s\\-]?\\d{2}$")) {
+            number.setError("Введите корректный номер телефона в формате +375 XX XXX XX XX");
+            number.requestFocus();
+            return false;
+        }
+
+        // Проверка email
+        if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email.getText().toString().trim()).matches()) {
+            email.setError("Введите корректный email");
+            email.requestFocus();
+            return false;
+        }
+
+        // Проверка сайта (если поле не пустое, оно должно быть корректным URL)
+        String siteText = site.getText().toString().trim();
+        if (!siteText.isEmpty() && !android.util.Patterns.WEB_URL.matcher(siteText).matches()) {
+            site.setError("Введите корректный URL");
+            site.requestFocus();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void saveBusinessCardToDatabase(String imageUrl) {
+        String userId = mAuth.getCurrentUser().getUid();
+
+        // Создаем Map для визитки
+        Map<String, Object> card = new HashMap<>();
+        card.put("userId", userId);
+        card.put("title", title.getText().toString().trim());
+        card.put("description", description.getText().toString().trim());
+        card.put("number", number.getText().toString().trim());
+        card.put("email", email.getText().toString().trim());
+        card.put("site", site.getText().toString().trim());
+        card.put("imageUrl", imageUrl);
+        card.put("links", links); // ссылки на соцсети
+
+        String TAG = "SaveToFirebase";
+
+        // Добавляем документ с автогенерацией ID
+        db.collection("business_cards")
+                .add(card)
+                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
+                    @Override
+                    public void onSuccess(DocumentReference documentReference) {
+                        Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "Error adding document", e);
+                    }
+                });
+    }
 
 }
