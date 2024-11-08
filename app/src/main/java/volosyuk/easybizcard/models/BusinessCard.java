@@ -63,6 +63,10 @@ public class BusinessCard implements Serializable {
         return imageUrl;
     }
 
+    public void setCardId(String cardId) {
+        this.cardId = cardId;
+    }
+
     public Map<String, String> getLinks() {
         return links;
     }

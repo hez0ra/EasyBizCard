@@ -50,6 +50,7 @@ public class MyCardsActivity extends AppCompatActivity {
                         if (documents != null) {
                             for (QueryDocumentSnapshot document : documents) {
                                 BusinessCard card = document.toObject(BusinessCard.class);
+                                card.setCardId(document.getId());
                                 businessCards.add(card);
                             }
                             adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
