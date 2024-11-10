@@ -1,5 +1,6 @@
 package volosyuk.easybizcard.utils;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Color;
@@ -47,21 +48,20 @@ public class QRCodeGenerator {
     }
 
 
-    // Статический метод для отправки QR-кода как изображения и текста
-    public static void sendQrCodeAsImage(Context context, Bitmap bitmap) {
+    public static void sendQrCodeAsImage(Activity activity, Bitmap bitmap, int requestCode) {
         File tempFile = null;
         try {
-            // Создание временного файла для хранения QR-кода
-            tempFile = File.createTempFile("QRCode", ".png", context.getCacheDir());
+            // Создаем временный файл для хранения QR-кода
+            tempFile = File.createTempFile("QRCode", ".png", activity.getCacheDir());
 
-            // Сохранение изображения QR-кода в временный файл
+            // Сохранение изображения QR-кода во временный файл
             try (FileOutputStream outputStream = new FileOutputStream(tempFile)) {
                 bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream);
                 outputStream.flush();
             }
 
             // Получаем URI для использования в Intent
-            Uri qrCodeUri = FileProvider.getUriForFile(context, "volosyuk.easybizcard.fileprovider", tempFile);
+            Uri qrCodeUri = FileProvider.getUriForFile(activity, "volosyuk.easybizcard.fileprovider", tempFile);
 
             // Создаем Intent для отправки изображения и текста
             Intent sendIntent = new Intent(Intent.ACTION_SEND);
@@ -69,12 +69,13 @@ public class QRCodeGenerator {
             sendIntent.putExtra(Intent.EXTRA_STREAM, qrCodeUri);
             sendIntent.putExtra(Intent.EXTRA_TEXT, "Просмотри мою визитку в EasyBizCard");
 
-            // Запускаем Intent для выбора приложения
-            context.startActivity(Intent.createChooser(sendIntent, "Send QR Code"));
+            // Запускаем Intent с ожиданием результата
+            activity.startActivityForResult(Intent.createChooser(sendIntent, "Send QR Code"), requestCode);
+
         } catch (IOException e) {
             e.printStackTrace();
-            // Можно добавить обработку ошибки, например, Toast
         }
     }
+
 
 }

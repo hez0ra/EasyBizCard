@@ -8,21 +8,21 @@ public class BusinessCard implements Serializable {
     public String userId;
     public String title;
     public String description;
-    public String phoneNumber;
+    public String number;
     public String email;
-    public String website;
+    public String site;
     public String imageUrl;
     public Map<String, String> links;
 
     // Конструктор
-    public BusinessCard(String cardId, String userId, String title, String description, String phoneNumber, String email, String website, String imageUrl, Map<String, String> links) {
+    public BusinessCard(String cardId, String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links) {
         this.cardId = cardId;
         this.userId = userId;
         this.title = title;
         this.description = description;
-        this.phoneNumber = phoneNumber;
+        this.number = number;
         this.email = email;
-        this.website = website;
+        this.site = site;
         this.imageUrl = imageUrl;
         this.links = links;
     }
@@ -47,16 +47,16 @@ public class BusinessCard implements Serializable {
         return description;
     }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
+    public String getNumber() {
+        return number;
     }
 
     public String getEmail() {
         return email;
     }
 
-    public String getWebsite() {
-        return website;
+    public String getSite() {
+        return site;
     }
 
     public String getImageUrl() {
@@ -70,4 +70,30 @@ public class BusinessCard implements Serializable {
     public Map<String, String> getLinks() {
         return links;
     }
+
+    // Геттеры для ссылок на социальные сети
+    public String getWhatsApp() {
+        return links != null ? links.get("whatsapp") : null;
+    }
+
+    public String getViber() {
+        return links != null ? links.get("viber") : null;
+    }
+
+    public String getTelegram() {
+        return links != null ? links.get("telegram") : null;
+    }
+
+    public String getFacebook() {
+        return links != null ? links.get("facebook") : null;
+    }
+
+    public String getVk() {
+        return links != null ? links.get("vkontakte") : null;
+    }
+
+    public String getInstagram() {
+        return links != null ? links.get("instagram") : null;
+    }
+
 }
