@@ -2,11 +2,13 @@ package volosyuk.easybizcard.utils;
 
 import android.util.Log;
 
-import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.CollectionReference;
+import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 
@@ -27,28 +29,38 @@ public class BusinessCardRepository {
         CompletableFuture<List<BusinessCard>> future = new CompletableFuture<>();
         List<BusinessCard> businessCardList = new ArrayList<>();
 
-        businessCardCollection.orderBy("createTime").get()
+        businessCardCollection.get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
-                        for (QueryDocumentSnapshot document : task.getResult()) {
-                            BusinessCard businessCard = document.toObject(BusinessCard.class);
-                            businessCardList.add(businessCard);
+                        QuerySnapshot documents = task.getResult();
+                        if (documents != null) {
+                            for (QueryDocumentSnapshot document : documents) {
+                                BusinessCard card = document.toObject(BusinessCard.class);
+                                card.setCardId(document.getId());
+                                businessCardList.add(card);
+                            }
+                            future.complete(businessCardList);
                         }
-                        future.complete(businessCardList);
                     }
                 });
-
         return future;
     }
 
     // Метод для добавления визитки
-    public BusinessCard addBusinessCard(String title, String description, String number, String email, String site, String imageUrl, String userId) {
+    public CompletableFuture<Void> addBusinessCard(BusinessCard card) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
         String businessCardId = businessCardCollection.document().getId();
-        Timestamp createTime = Timestamp.now();
-
-        BusinessCard businessCard = new BusinessCard(businessCardId, userId, title, description, number, email, site, imageUrl, null);
-        businessCardCollection.document(businessCardId).set(businessCard);
-        return businessCard;
+        card.setCardId(businessCardId);
+        businessCardCollection.document(businessCardId).set(card)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("EasyBizCard", "Визитка успешно создана");
+                    future.complete(null);
+                })
+                .addOnFailureListener(e -> {
+                    Log.d("EasyBizCard", "Ошибка при создании визитки", e);
+                    future.completeExceptionally(e);
+                });
+        return future;
     }
 
     // Метод для обновления визитки
@@ -87,7 +99,6 @@ public class BusinessCardRepository {
                 });
     }
 
-
     // Метод для удаления всех визиток пользователя по ID
     public void deleteBusinessCardsByUserId(String userId) {
         businessCardCollection
@@ -105,7 +116,6 @@ public class BusinessCardRepository {
     // Метод для поиска визитки по ID
     public CompletableFuture<BusinessCard> searchBusinessCardById(String cardId) {
         CompletableFuture<BusinessCard> future = new CompletableFuture<>();
-
         businessCardCollection.document(cardId).get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
@@ -120,6 +130,51 @@ public class BusinessCardRepository {
                     } else {
                         future.completeExceptionally(new Exception("Ошибка при поиске визитки"));
                     }
+                });
+        return future;
+    }
+
+    public CompletableFuture<Void> updateViewsCount(String cardId) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        DocumentReference cardRef = businessCardCollection.document(cardId);
+
+        cardRef.update("views", FieldValue.increment(1))
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("EasyBizCard", "Счётчик просмотров обновлен");
+                    future.complete(null);
+                })
+                .addOnFailureListener(e -> {
+                    future.completeExceptionally(new Exception("Ошибка при увелечении количетсва просмотров визитки"));
+                });
+        return future;
+    }
+
+    public CompletableFuture<Void> incrementFavoriteCount(String cardId) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        DocumentReference cardRef = businessCardCollection.document(cardId);
+
+        cardRef.update("favorites", FieldValue.increment(1))
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("EasyBizCard", "Счётчик избранных обновлен");
+                    future.complete(null);
+                })
+                .addOnFailureListener(e -> {
+                    future.completeExceptionally(new Exception("Ошибка при увелечении количетсва избранных визитки"));
+                });
+        return future;
+    }
+
+    public CompletableFuture<Void> decrementFavoriteCount(String cardId) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        DocumentReference cardRef = businessCardCollection.document(cardId);
+
+        cardRef.update("favorites", FieldValue.increment(-1))
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("EasyBizCard", "Счётчик избранных обновлен");
+                    future.complete(null);
+                })
+                .addOnFailureListener(e -> {
+                    future.completeExceptionally(new Exception("Ошибка при увелечении количетсва избранных визитки"));
                 });
         return future;
     }

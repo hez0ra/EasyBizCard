@@ -16,15 +16,16 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
-import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import volosyuk.easybizcard.utils.UserRepository;
 
 public class RegisterActivity extends AppCompatActivity {
 
@@ -32,6 +33,7 @@ public class RegisterActivity extends AppCompatActivity {
     Button register;
     TextView toLogin;
     private FirebaseAuth mAuth;
+    private UserRepository userRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +47,7 @@ public class RegisterActivity extends AppCompatActivity {
         });
 
         mAuth = FirebaseAuth.getInstance();
+        userRepository = new UserRepository(FirebaseFirestore.getInstance(), mAuth);
 
         email = findViewById(R.id.register_email);
         password = findViewById(R.id.register_password);
@@ -86,6 +89,7 @@ public class RegisterActivity extends AppCompatActivity {
                 public void onComplete(@NonNull Task<AuthResult> task) {
                     final Intent intent;
                     if(task.isSuccessful()){
+                        userRepository.createUser();
                         intent = new Intent(getApplicationContext(), ProfileActivity.class);
                         startActivity(intent);
                         finish();

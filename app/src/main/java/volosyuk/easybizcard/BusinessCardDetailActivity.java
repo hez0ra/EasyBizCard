@@ -18,26 +18,36 @@ import androidx.appcompat.app.AppCompatActivity;
 
 
 import com.bumptech.glide.Glide;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.File;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.utils.BusinessCardRepository;
 import volosyuk.easybizcard.utils.QRCodeGenerator;
+import volosyuk.easybizcard.utils.UserRepository;
 
 public class BusinessCardDetailActivity extends AppCompatActivity {
 
     private final int REQUEST_CODE_SEND_QR = 1203;
+    private UserRepository userRepository;
     public final static String EXTRA_CARD = "businessCard";
+    private boolean isMarked = false;
+
 
     private CircleImageView imageView;
     private TextView title, description, phone, email, site;
-    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram;
+    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report;
+    private BusinessCardRepository businessCardRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.sample_1);  // Ваш XML для подробной визитки
+
+        userRepository = new UserRepository(FirebaseFirestore.getInstance(), FirebaseAuth.getInstance());
 
         // Инициализация компонентов
         imageView = findViewById(R.id.sample_1_image);
@@ -53,10 +63,12 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         facebook = findViewById(R.id.sample_1_links_facebook);
         vkontakte = findViewById(R.id.sample_1_links_vkontakte);
         instagram = findViewById(R.id.sample_1_links_instagram);
-
+        bookmark = findViewById(R.id.sample_1_bookmark);
+        report = findViewById(R.id.sample_1_report);
 
         // Получаем данные о визитке, переданные через Intent
         BusinessCard card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
+        businessCardRepository = new BusinessCardRepository(FirebaseFirestore.getInstance());
 
         // Заполняем данными
         if (card != null) {
@@ -76,7 +88,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
                 Bitmap qrBitmap = QRCodeGenerator.generateQRCode(cardIdForQR);
                 showQRCode(qrBitmap);
             });
-
+            businessCardRepository.updateViewsCount(card.getCardId());
         }
 
         setupSocialLinks(card);
@@ -90,6 +102,26 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     startActivity(intent);
                 }
+            }
+        });
+
+        userRepository.isCardBookmarked(card.getCardId()).thenAccept(result -> {
+            if(result){
+                isMarked = result;
+                bookmark.setImageResource(R.drawable.icon_bookmark_remove);
+            }
+        });
+
+        bookmark.setOnClickListener(v -> {
+            if(isMarked){
+                isMarked = false;
+                userRepository.removeCardFromBookmarks(card.getCardId());
+                bookmark.setImageResource(R.drawable.icon_bookmark_add);
+            }
+            else{
+                isMarked = true;
+                userRepository.addCardToBookmarks(card.getCardId());
+                bookmark.setImageResource(R.drawable.icon_bookmark_remove);
             }
         });
     }
@@ -142,9 +174,11 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         setupLink(card.getVk(), vkontakte);
         setupLink(card.getInstagram(), instagram);
         // Скрываем весь блок социальных сетей, если все ссылки пусты
-        if (card.getWhatsApp() == null && card.getViber() == null && card.getTelegram() == null &&
-                card.getFacebook() == null && card.getVk() == null && card.getInstagram() == null) {
-            findViewById(R.id.sample_1_links_group).setVisibility(View.GONE);
+        if (card.getWhatsApp() == null && card.getViber() == null && card.getTelegram() == null && card.getFacebook() == null && card.getVk() == null && card.getInstagram() == null) {
+            TextView title = findViewById(R.id.sample_1_links_title);
+            title.setVisibility(View.GONE);
+            View splitBar = findViewById(R.id.sample_1_links_bar);
+            splitBar.setVisibility(View.GONE);
         }
     }
 

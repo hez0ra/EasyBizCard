@@ -45,6 +45,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import de.hdodenhof.circleimageview.CircleImageView;
+import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.utils.BusinessCardRepository;
 
 public class EditActivity extends AppCompatActivity {
 
@@ -63,7 +65,7 @@ public class EditActivity extends AppCompatActivity {
     private Map<String, String> links = new HashMap<>();
     private String imageUrl;
     private Bitmap selectedBitmap;
-    private FirebaseFirestore db;
+    private BusinessCardRepository businessCardRepository;
 
 
 
@@ -129,10 +131,10 @@ public class EditActivity extends AppCompatActivity {
             default:
                 break;
         }
-        db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
         storage = FirebaseStorage.getInstance();
         storageRef = storage.getReference();
+        businessCardRepository = new BusinessCardRepository(FirebaseFirestore.getInstance());
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Загрузка изображения...");
         progressDialog.setCancelable(false);  // Запрещаем отмену загрузки
@@ -328,35 +330,13 @@ public class EditActivity extends AppCompatActivity {
 
     private void saveBusinessCardToDatabase(String imageUrl) {
         String userId = mAuth.getCurrentUser().getUid();
-
-        // Создаем Map для визитки
-        Map<String, Object> card = new HashMap<>();
-        card.put("userId", userId);
-        card.put("title", title.getText().toString().trim());
-        card.put("description", description.getText().toString().trim());
-        card.put("number", number.getText().toString().trim());
-        card.put("email", email.getText().toString().trim());
-        card.put("site", site.getText().toString().trim());
-        card.put("imageUrl", imageUrl);
-        card.put("links", links); // ссылки на соцсети
-
-        String TAG = "SaveToFirebase";
-
-        // Добавляем документ с автогенерацией ID
-        db.collection("business_cards")
-                .add(card)
-                .addOnSuccessListener(new OnSuccessListener<DocumentReference>() {
-                    @Override
-                    public void onSuccess(DocumentReference documentReference) {
-                        Log.d(TAG, "DocumentSnapshot added with ID: " + documentReference.getId());
-                    }
-                })
-                .addOnFailureListener(new OnFailureListener() {
-                    @Override
-                    public void onFailure(@NonNull Exception e) {
-                        Log.w(TAG, "Error adding document", e);
-                    }
-                });
+        BusinessCard card = new BusinessCard(userId, title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links);
+        try {
+            businessCardRepository.addBusinessCard(card);
+            Toast.makeText(this, "Успешное сохранение визитки", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "Ошибка сохранения визитки", Toast.LENGTH_SHORT).show();
+        }
     }
 
 }

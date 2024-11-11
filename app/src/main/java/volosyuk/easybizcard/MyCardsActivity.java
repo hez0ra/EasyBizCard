@@ -1,25 +1,30 @@
 package volosyuk.easybizcard;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.widget.Toast;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
-import com.google.firebase.firestore.QueryDocumentSnapshot;
-import com.google.firebase.firestore.QuerySnapshot;
+
 import java.util.ArrayList;
 import java.util.List;
 import volosyuk.easybizcard.adapters.CardAdapter;
 import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.utils.BusinessCardRepository;
+import volosyuk.easybizcard.utils.UserRepository;
 
 public class MyCardsActivity extends AppCompatActivity {
 
+    public final static String EXTRA_BOOKMARKS = "isBookmarks";
+
     private RecyclerView recyclerView;
     private CardAdapter adapter;
-    private List<BusinessCard> businessCards;
-    private FirebaseFirestore db;
+    private List<BusinessCard> businessCards = new ArrayList<>();
+    private BusinessCardRepository businessCardRepository;
+    private UserRepository userRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,35 +34,27 @@ public class MyCardsActivity extends AppCompatActivity {
         // Инициализация компонентов
         recyclerView = findViewById(R.id.recycler_view_cards);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
+        businessCardRepository = new BusinessCardRepository(firebaseFirestore);
+        userRepository = new UserRepository(firebaseFirestore, FirebaseAuth.getInstance());
 
-        businessCards = new ArrayList<>();
         adapter = new CardAdapter(this, businessCards);
         recyclerView.setAdapter(adapter);
 
-        // Инициализация Firestore
-        db = FirebaseFirestore.getInstance();
-
-        // Загрузка визиток из Firestore
-        loadBusinessCards();
-    }
-
-    private void loadBusinessCards() {
-        db.collection("business_cards")  // Название коллекции в Firestore
-                .get()
-                .addOnCompleteListener(task -> {
-                    if (task.isSuccessful()) {
-                        QuerySnapshot documents = task.getResult();
-                        if (documents != null) {
-                            for (QueryDocumentSnapshot document : documents) {
-                                BusinessCard card = document.toObject(BusinessCard.class);
-                                card.setCardId(document.getId());
-                                businessCards.add(card);
-                            }
-                            adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
-                        }
-                    } else {
-                        Toast.makeText(MyCardsActivity.this, "Error getting documents", Toast.LENGTH_SHORT).show();
-                    }
-                });
+        if(getIntent().getBooleanExtra(EXTRA_BOOKMARKS, false)){
+            userRepository.getAllBookmarkedCards().thenAccept(result -> {
+                businessCards.clear();  // Очищаем текущий список
+                businessCards.addAll(result);  // Добавляем новые данные
+                adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
+            });
+        }
+        else{
+            // Загрузка визиток из Firestore
+            businessCardRepository.getAllBusinessCards().thenAccept(result -> {
+                businessCards.clear();  // Очищаем текущий список
+                businessCards.addAll(result);  // Добавляем новые данные
+                adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
+            });
+        }
     }
 }

@@ -4,6 +4,8 @@ import java.util.List;
 
 public class User {
     private String userId;
+    private String email;
+    private List<String> bookmarkedCards;
 
     public String getEmail() {
         return email;
@@ -13,11 +15,9 @@ public class User {
         this.email = email;
     }
 
-    private String email;
-    private List<String> bookmarkedCards;
-
     public User(String userId, String email, List<String> bookmarkedCards) {
         this.userId = userId;
+        this.email = email;
         this.bookmarkedCards = bookmarkedCards;
     }
 

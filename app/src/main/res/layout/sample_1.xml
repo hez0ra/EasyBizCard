@@ -17,10 +17,30 @@
             android:layout_height="48dp"
             android:layout_marginTop="4dp"
             android:layout_marginEnd="4dp"
-            android:background="@android:color/transparent"
+            android:background="@drawable/background_white_rounded"
             android:src="@drawable/icon_qr"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/sample_1_bookmark"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/background_white_rounded"
+            android:src="@drawable/icon_bookmark_add"
+            app:layout_constraintEnd_toEndOf="@+id/sample_1_share"
+            app:layout_constraintTop_toBottomOf="@+id/sample_1_share" />
+
+        <ImageButton
+            android:id="@+id/sample_1_report"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/background_white_rounded"
+            android:src="@drawable/icon_report"
+            app:layout_constraintEnd_toEndOf="@+id/sample_1_bookmark"
+            app:layout_constraintTop_toBottomOf="@+id/sample_1_bookmark" />
 
         <de.hdodenhof.circleimageview.CircleImageView
             android:id="@+id/sample_1_image"
@@ -41,6 +61,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="Ваш заголовок"
+            android:textColor="@color/text"
             android:textSize="24sp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.5"
@@ -54,6 +75,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginHorizontal="8dp"
             android:text="Основной текст"
+            android:textColor="@color/text"
             app:layout_constraintBottom_toTopOf="@+id/sample_1_links"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintHorizontal_bias="0.0"
@@ -75,29 +97,34 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/text"
                 android:text="Телефон:" />
 
             <TextView
                 android:id="@+id/sample_1_phone"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/text"
                 android:text="+375-00-000-00-00" />
 
             <View
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginVertical="8dp"
+                android:textColor="@color/text"
                 android:background="@color/black" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/text"
                 android:text="Email:" />
 
             <TextView
                 android:id="@+id/sample_1_email"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/text"
                 android:text="example@gmail.com" />
 
             <View
@@ -110,6 +137,7 @@
                 android:id="@+id/sample_1_links_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/text"
                 android:text="Социальные сети:" />
 
             <HorizontalScrollView
@@ -183,6 +211,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:textColor="@color/text"
                 android:text="Сайт:" />
 
             <TextView
@@ -191,13 +220,9 @@
                 android:layout_height="wrap_content"
                 android:text="https://example.com"
                 android:textColor="#0000FF" />
+
         </LinearLayout>
 
-        <androidx.constraintlayout.widget.Group
-            android:id="@+id/sample_1_links_group"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:constraint_referenced_ids="sample_1_links_title, sample_1_links_facebook, sample_1_links_whatsapp, sample_1_links_viber, sample_1_links_telegram, sample_1_links_instagram, sample_1_links_vkontakte, sample_1_links_bar" />
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

@@ -18,7 +18,7 @@ import volosyuk.easybizcard.utils.BusinessCardRepository;
 
 public class AddActivity extends AppCompatActivity {
 
-    ImageButton toProfile, toMyCards, toScan;
+    ImageButton toProfile, toMyCards, toScan, toBookmarks;
     Button sample1, sample2;
     BusinessCardRepository businessCardRepository;
 
@@ -38,8 +38,10 @@ public class AddActivity extends AppCompatActivity {
         toProfile = findViewById(R.id.add_to_profile);
         toMyCards = findViewById(R.id.add_to_my_cards);
         toScan = findViewById(R.id.add_to_scan);
+        toBookmarks = findViewById(R.id.add_to_my_bookmarks);
         sample1 = findViewById(R.id.add_sample_1);
         sample2 = findViewById(R.id.add_sample_2);
+
 
         sample1.setOnClickListener(v ->{
             Intent intent = new Intent(this, EditActivity.class);
@@ -54,14 +56,19 @@ public class AddActivity extends AppCompatActivity {
 
         toMyCards.setOnClickListener(v ->{
             Intent intent = new Intent(this, MyCardsActivity.class);
+            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, false);
             startActivity(intent);
         });
 
         toScan.setOnClickListener(v ->{
-
-
             Intent intent = new Intent(this, QRScannerActivity.class);
             startActivityForResult(intent, 365);
+        });
+
+        toBookmarks.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MyCardsActivity.class);
+            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, true);
+            startActivity(intent);
         });
 
     }

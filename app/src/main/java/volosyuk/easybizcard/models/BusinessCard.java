@@ -14,9 +14,12 @@ public class BusinessCard implements Serializable {
     public String imageUrl;
     public Map<String, String> links;
 
+
+    private long views;
+    private long favorites;
+
     // Конструктор
-    public BusinessCard(String cardId, String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links) {
-        this.cardId = cardId;
+    public BusinessCard(String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links) {
         this.userId = userId;
         this.title = title;
         this.description = description;
@@ -25,6 +28,14 @@ public class BusinessCard implements Serializable {
         this.site = site;
         this.imageUrl = imageUrl;
         this.links = links;
+        this.views = 0;
+        this.favorites = 0;
+    }
+
+    // Конструктор
+    public BusinessCard(String cardId, String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links) {
+        this(userId, title, description, number, email, site, imageUrl, links);
+        this.cardId = cardId;
     }
 
     // Пустой конструктор для Firebase
@@ -96,4 +107,19 @@ public class BusinessCard implements Serializable {
         return links != null ? links.get("instagram") : null;
     }
 
+    public long getViews() {
+        return views;
+    }
+
+    public void setViews(long views) {
+        this.views = views;
+    }
+
+    public long getFavorites() {
+        return favorites;
+    }
+
+    public void setFavorites(long favorites) {
+        this.favorites = favorites;
+    }
 }
