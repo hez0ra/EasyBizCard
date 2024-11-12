@@ -13,6 +13,7 @@ import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -35,8 +36,10 @@ import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.models.Report;
 import volosyuk.easybizcard.utils.BusinessCardRepository;
 import volosyuk.easybizcard.utils.QRCodeGenerator;
+import volosyuk.easybizcard.utils.ReportRepository;
 import volosyuk.easybizcard.utils.UserRepository;
 
 public class BusinessCardDetailActivity extends AppCompatActivity {
@@ -44,6 +47,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
     private final int REQUEST_CODE_SEND_QR = 1203;
     private UserRepository userRepository;
     public final static String EXTRA_CARD = "businessCard";
+    public final static String EXTRA_CARD_ID = "businessCardId";
     private boolean isMarked = false;
 
 
@@ -52,6 +56,8 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
     private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report, analytics;
     private BusinessCardRepository businessCardRepository;
     private FirebaseAuth mAuth;
+    private BusinessCard card;
+    private ReportRepository reportRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -79,9 +85,19 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         analytics = findViewById(R.id.sample_1_analytics);
 
         // Получаем данные о визитке, переданные через Intent
-        BusinessCard card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
+        String cardId = getIntent().getStringExtra(EXTRA_CARD_ID);
         mAuth = FirebaseAuth.getInstance();
         businessCardRepository = new BusinessCardRepository(FirebaseFirestore.getInstance());
+        reportRepository = new ReportRepository();
+
+        if (cardId != null){
+            businessCardRepository.searchBusinessCardById(cardId).thenAccept(result -> {
+                card = result;
+            });
+        }
+        else {
+            card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
+        }
 
         // Заполняем данными
         if (card != null) {
@@ -124,6 +140,8 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
                 bookmark.setImageResource(R.drawable.icon_bookmark_remove);
             }
         });
+
+        report.setOnClickListener(v -> showReportDialog());
 
         bookmark.setOnClickListener(v -> {
             if(isMarked){
@@ -265,6 +283,30 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
 
         builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
         builder.show();
+    }
+
+    private void showReportDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_report, null);
+        builder.setView(dialogView);
+
+        EditText titleInput = dialogView.findViewById(R.id.report_title);
+        EditText messageInput = dialogView.findViewById(R.id.report_message);
+
+        builder.setTitle("Сообщить о проблеме")
+                .setPositiveButton("Отправить", (dialog, id) -> {
+                    String title = titleInput.getText().toString().trim();
+                    String message = messageInput.getText().toString().trim();
+                    if (!title.isEmpty() && !message.isEmpty()) {
+                        reportRepository.addReport(title, message, card.getCardId(), mAuth.getCurrentUser().getUid());
+                    } else {
+                        // Обработка случая с пустыми полями
+                    }
+                })
+                .setNegativeButton("Отмена", (dialog, id) -> dialog.dismiss())
+                .create()
+                .show();
     }
 
 

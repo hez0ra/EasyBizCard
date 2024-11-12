@@ -5,7 +5,7 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-import volosyuk.easybizcard.fragments.ComplaintsFragment;
+import volosyuk.easybizcard.fragments.ReportsFragment;
 import volosyuk.easybizcard.fragments.ModerationFragment;
 import volosyuk.easybizcard.fragments.UserManagementFragment;
 
@@ -22,7 +22,7 @@ public class AdminPagerAdapter extends FragmentStateAdapter {
             case 0:
                 return new ModerationFragment();
             case 1:
-                return new ComplaintsFragment();
+                return new ReportsFragment();
             case 2:
                 return new UserManagementFragment();
             default:

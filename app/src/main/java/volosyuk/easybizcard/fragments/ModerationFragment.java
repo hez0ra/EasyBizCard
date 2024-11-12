@@ -11,26 +11,27 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
 import volosyuk.easybizcard.R;
+import volosyuk.easybizcard.adapters.ReportAdapter;
+import volosyuk.easybizcard.utils.ReportRepository;
 
 public class ModerationFragment extends Fragment {
 
     private RecyclerView recyclerView;
+    private ReportRepository reportRepository;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.fragment_moderation, container, false);
-        recyclerView = view.findViewById(R.id.recycler_view);
+        View view = inflater.inflate(R.layout.fragment_reports, container, false);
+        recyclerView = view.findViewById(R.id.reports_recyclerView);
 
-        // Настройка RecyclerView для отображения визиток
-        setupRecyclerView();
+        reportRepository = new ReportRepository();
+        reportRepository.getAllReports().thenAccept(result -> {
+            recyclerView.setAdapter(new ReportAdapter(result, requireContext()));
+        });
 
         return view;
-    }
-
-    private void setupRecyclerView() {
-        // Логика загрузки визиток и отображения в RecyclerView
     }
 
 }
