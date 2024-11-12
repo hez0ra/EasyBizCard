@@ -47,7 +47,8 @@ dependencies {
     implementation libs.picasso
     implementation libs.exifinterface
     implementation libs.firebase.database
-    implementation libs.zxing.android.embedded
+    implementation libs.zxing.android.embedded // qr
+    implementation libs.mpandroidchart // диаграммы
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

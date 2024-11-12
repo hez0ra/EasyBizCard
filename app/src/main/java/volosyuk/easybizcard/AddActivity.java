@@ -2,6 +2,7 @@ package volosyuk.easybizcard;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.Toast;
@@ -12,15 +13,19 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import volosyuk.easybizcard.utils.BusinessCardRepository;
+import volosyuk.easybizcard.utils.UserRepository;
 
 public class AddActivity extends AppCompatActivity {
 
-    ImageButton toProfile, toMyCards, toScan, toBookmarks;
+    ImageButton toProfile, toMyCards, toScan, toBookmarks, toAdminPanel;
     Button sample1, sample2;
     BusinessCardRepository businessCardRepository;
+    FirebaseAuth mAuth;
+    UserRepository userRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,11 +39,14 @@ public class AddActivity extends AppCompatActivity {
         });
 
         businessCardRepository = new BusinessCardRepository(FirebaseFirestore.getInstance());
+        mAuth = FirebaseAuth.getInstance();
+        userRepository = new UserRepository(FirebaseFirestore.getInstance(), mAuth);
 
         toProfile = findViewById(R.id.add_to_profile);
         toMyCards = findViewById(R.id.add_to_my_cards);
         toScan = findViewById(R.id.add_to_scan);
         toBookmarks = findViewById(R.id.add_to_my_bookmarks);
+        toAdminPanel = findViewById(R.id.add_to_admin_panel);
         sample1 = findViewById(R.id.add_sample_1);
         sample2 = findViewById(R.id.add_sample_2);
 
@@ -71,6 +79,17 @@ public class AddActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        if(mAuth.getCurrentUser() != null){
+            userRepository.isActiveUserAdmin().thenAccept(result -> {
+                if(result){
+                    toAdminPanel.setVisibility(View.VISIBLE);
+                    toAdminPanel.setOnClickListener(v -> {
+                        Intent intent = new Intent(this, AdminPanelActivity.class);
+                        startActivity(intent);
+                    });
+                }
+            });
+        }
     }
 
     @Override

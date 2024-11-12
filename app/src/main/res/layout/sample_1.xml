@@ -12,11 +12,23 @@
         android:layout_height="wrap_content">
 
         <ImageButton
+            android:id="@+id/sample_1_analytics"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/background_white_rounded"
+            android:src="@drawable/icon_analytics"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
             android:id="@+id/sample_1_share"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginTop="4dp"
-            android:layout_marginEnd="4dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
             android:background="@drawable/background_white_rounded"
             android:src="@drawable/icon_qr"
             app:layout_constraintEnd_toEndOf="parent"

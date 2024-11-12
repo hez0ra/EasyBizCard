@@ -220,5 +220,26 @@ public class UserRepository {
         return future;
     }
 
+    public CompletableFuture<Boolean> isActiveUserAdmin(){
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        String userId = auth.getCurrentUser().getUid();
 
+        db.collection("users").document(userId).get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful() && task.getResult() != null) {
+                        DocumentSnapshot document = task.getResult();
+                        boolean result = document.getBoolean("admin");
+                        future.complete(result);
+                        Log.d("EasyBizCard", "Успешная проверка на админа");
+                    }
+                    else {
+                        future.completeExceptionally(new Exception("Не удалось проверить админ ли текущий пользователь"));
+                    }
+        })
+                .addOnFailureListener(future::completeExceptionally);
+        return future;
+    }
 }
+
+
+

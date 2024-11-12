@@ -4,11 +4,13 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 import android.util.Patterns;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
@@ -18,10 +20,18 @@ import androidx.appcompat.app.AppCompatActivity;
 
 
 import com.bumptech.glide.Glide;
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 import volosyuk.easybizcard.models.BusinessCard;
@@ -39,8 +49,9 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
 
     private CircleImageView imageView;
     private TextView title, description, phone, email, site;
-    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report;
+    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report, analytics;
     private BusinessCardRepository businessCardRepository;
+    private FirebaseAuth mAuth;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,9 +76,11 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         instagram = findViewById(R.id.sample_1_links_instagram);
         bookmark = findViewById(R.id.sample_1_bookmark);
         report = findViewById(R.id.sample_1_report);
+        analytics = findViewById(R.id.sample_1_analytics);
 
         // Получаем данные о визитке, переданные через Intent
         BusinessCard card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
+        mAuth = FirebaseAuth.getInstance();
         businessCardRepository = new BusinessCardRepository(FirebaseFirestore.getInstance());
 
         // Заполняем данными
@@ -124,6 +137,17 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
                 bookmark.setImageResource(R.drawable.icon_bookmark_remove);
             }
         });
+
+        if(mAuth.getCurrentUser() != null){
+
+            if(mAuth.getCurrentUser().getUid().equals(card.getUserId())){
+                analytics.setVisibility(View.VISIBLE);
+                analytics.setOnClickListener(v -> {
+                    showStatsDialog(card.getViews(), card.getFavorites());
+                });
+            }
+
+        }
     }
 
     private void showQRCode(Bitmap qrBitmap) {
@@ -205,5 +229,43 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
                 .create()
                 .show();
     }
+
+    private void showStatsDialog(long viewsCount, long favoritesCount) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_stats, null);
+        builder.setView(dialogView);
+
+        BarChart barChart = dialogView.findViewById(R.id.dialog_analytics_bar_chart);
+        TextView viewsText = dialogView.findViewById(R.id.dialog_analytics_text_views);
+        TextView favoritesText = dialogView.findViewById(R.id.dialog_analytics_text_favorites);
+
+        viewsText.setText("Просмотры: " + viewsCount);
+        favoritesText.setText("Избранное: " + favoritesCount);
+
+        // Данные для диаграммы
+        List<BarEntry> entries = new ArrayList<>();
+        entries.add(new BarEntry(0f, viewsCount)); // Столбец для просмотров
+        entries.add(new BarEntry(1f, favoritesCount)); // Столбец для избранных
+
+        BarDataSet dataSet = new BarDataSet(entries, "Статистика");
+        dataSet.setColors(new int[]{Color.GREEN, Color.YELLOW}); // Цвета для каждого столбца
+
+        BarData data = new BarData(dataSet);
+        data.setBarWidth(0.5f); // Ширина столбцов
+        barChart.setData(data);
+        barChart.invalidate(); // Обновление диаграммы
+
+        // Настройка отображения осей и подписи
+        barChart.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
+        barChart.getXAxis().setGranularity(1f);
+        barChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(new String[]{"Просмотры", "Избранное"}));
+        barChart.getDescription().setEnabled(false); // Убрать описание
+        barChart.getAxisRight().setEnabled(false); // Отключить правую ось
+
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
 
 }
