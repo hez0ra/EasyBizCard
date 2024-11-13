@@ -57,4 +57,24 @@ public class MyCardsActivity extends AppCompatActivity {
             });
         }
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(getIntent().getBooleanExtra(EXTRA_BOOKMARKS, false)){
+            userRepository.getAllBookmarkedCards().thenAccept(result -> {
+                businessCards.clear();  // Очищаем текущий список
+                businessCards.addAll(result);  // Добавляем новые данные
+                adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
+            });
+        }
+        else{
+            // Загрузка визиток из Firestore
+            businessCardRepository.getAllBusinessCards().thenAccept(result -> {
+                businessCards.clear();  // Очищаем текущий список
+                businessCards.addAll(result);  // Добавляем новые данные
+                adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
+            });
+        }
+    }
 }

@@ -3,4 +3,6 @@
     <string name="user_image">EasyBizCard</string>
     <string name="image_description">EasyBizCard</string>
     <string name="card_image_desc">Business card image</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

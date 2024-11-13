@@ -19,12 +19,18 @@ import volosyuk.easybizcard.utils.ReportRepository;
 
 public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportViewHolder> {
 
+    public interface OnCardClickListener {
+        void onCardClick(String cardId);
+    }
+
     private List<Report> reports;
     private Context context;
+    private OnCardClickListener onCardClickListener;
 
-    public ReportAdapter(List<Report> reports, Context context) {
+    public ReportAdapter(List<Report> reports, Context context, OnCardClickListener onCardClickListener) {
         this.reports = reports;
         this.context = context;
+        this.onCardClickListener = onCardClickListener;
     }
 
     @Override
@@ -42,15 +48,17 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
         holder.userIdTextView.setText("User ID: " + report.getUserId());
         holder.status.setText("Статус: " + report.getConsidered());
 
-        holder.consideredButton.setOnClickListener(v -> {
-            // Пометка жалобы как рассмотренной
-            report.setConsidered(true);
-            holder.reportRepository.updateReportStatus(report.getReportId(), report.getConsidered());
+        // Устанавливаем клик для toCard с использованием интерфейса
+        holder.toCard.setOnClickListener(v -> {
+            if (onCardClickListener != null) {
+                onCardClickListener.onCardClick(report.getCardId());
+            }
         });
 
-        holder.cardIdTextView.setOnClickListener(v -> {
-            Intent intent = new Intent(context, BusinessCard.class);
-            intent.putExtra(BusinessCardDetailActivity.EXTRA_CARD_ID, report.getCardId());
+        holder.consideredButton.setOnClickListener(v -> {
+            // Логика для пометки жалобы как рассмотренной
+            report.setConsidered(true);
+            holder.reportRepository.updateReportStatus(report.getReportId(), report.getConsidered());
         });
     }
 
@@ -60,9 +68,8 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
     }
 
     public static class ReportViewHolder extends RecyclerView.ViewHolder {
-
         TextView titleTextView, messageTextView, cardIdTextView, userIdTextView, status;
-        Button consideredButton;
+        Button consideredButton, toCard;
         ReportRepository reportRepository;
 
         public ReportViewHolder(View itemView) {
@@ -73,6 +80,7 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
             userIdTextView = itemView.findViewById(R.id.text_view_user_id);
             consideredButton = itemView.findViewById(R.id.button_considered);
             status = itemView.findViewById(R.id.text_view_status);
+            toCard = itemView.findViewById(R.id.button_to_card);
 
             reportRepository = new ReportRepository();
         }

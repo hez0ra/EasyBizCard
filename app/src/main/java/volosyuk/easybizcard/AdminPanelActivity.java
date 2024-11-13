@@ -1,56 +1,50 @@
 package volosyuk.easybizcard;
 
 import android.os.Bundle;
+import android.widget.ImageButton;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
-import androidx.viewpager2.widget.ViewPager2;
+import androidx.fragment.app.Fragment;
 
-import com.google.android.material.tabs.TabLayout;
-import com.google.android.material.tabs.TabLayoutMediator;
-
-import volosyuk.easybizcard.adapters.AdminPagerAdapter;
+import volosyuk.easybizcard.fragments.CardsFragment;
+import volosyuk.easybizcard.fragments.ReportsFragment;
+import volosyuk.easybizcard.fragments.UsersFragment;
 
 public class AdminPanelActivity extends AppCompatActivity {
 
-    TabLayout tabLayout;
-    ViewPager2 viewPager;
+    ImageButton cardsButton, reportsButton, usersButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_admin_panel);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.admin_panel), (v, insets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        tabLayout = findViewById(R.id.admin_panel_tab_layout);
-        viewPager = findViewById(R.id.admin_panel_view_pager);
+        cardsButton = findViewById(R.id.admin_panel_cards);
+        reportsButton = findViewById(R.id.admin_panel_reports);
+        usersButton = findViewById(R.id.admin_panel_users);
 
-        AdminPagerAdapter adapter = new AdminPagerAdapter(this);
-        viewPager.setAdapter(adapter);
+        replaceFragment(new CardsFragment());
 
-        // Связываем TabLayout и ViewPager
-        new TabLayoutMediator(tabLayout, viewPager,
-                (tab, position) -> {
-                    switch (position) {
-                        case 0:
-                            tab.setText("Визитки");
-                            break;
-                        case 1:
-                            tab.setText("Жалобы");
-                            break;
-                        case 2:
-                            tab.setText("Пользователи");
-                            break;
-                    }
-                }).attach();
+        // Назначаем обработчики кнопкам
+        cardsButton.setOnClickListener(view -> replaceFragment(new CardsFragment()));
+        reportsButton.setOnClickListener(view -> replaceFragment(new ReportsFragment()));
+        usersButton.setOnClickListener(view -> replaceFragment(new UsersFragment()));
+    }
 
+    // Метод для замены фрагментов
+    private void replaceFragment(Fragment fragment) {
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.admin_panel_fragment_container_view, fragment)
+                .commit();
     }
 }

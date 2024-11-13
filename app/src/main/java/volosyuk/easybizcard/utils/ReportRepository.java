@@ -17,13 +17,13 @@ public class ReportRepository {
     }
 
     // Метод для добавления нового репорта
-    public CompletableFuture<String> addReport(String title, String message, String cardId, String userId) {
-        CompletableFuture<String> future = new CompletableFuture<>();
+    public CompletableFuture<Void> addReport(String title, String message, String cardId, String userId) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
         String reportId = reportsRef.document().getId();
         Report report = new Report(reportId, cardId, userId, title, message, false);
 
-        reportsRef.add(report)
-                .addOnSuccessListener(documentReference -> future.complete(documentReference.getId()))
+        reportsRef.document(reportId).set(report)
+                .addOnSuccessListener(documentReference -> future.complete(null))
                 .addOnFailureListener(future::completeExceptionally);
         return future;
     }

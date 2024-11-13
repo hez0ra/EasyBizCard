@@ -47,13 +47,12 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
     private final int REQUEST_CODE_SEND_QR = 1203;
     private UserRepository userRepository;
     public final static String EXTRA_CARD = "businessCard";
-    public final static String EXTRA_CARD_ID = "businessCardId";
     private boolean isMarked = false;
 
 
     private CircleImageView imageView;
     private TextView title, description, phone, email, site;
-    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report, analytics;
+    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report, analytics, delete;
     private BusinessCardRepository businessCardRepository;
     private FirebaseAuth mAuth;
     private BusinessCard card;
@@ -83,21 +82,14 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         bookmark = findViewById(R.id.sample_1_bookmark);
         report = findViewById(R.id.sample_1_report);
         analytics = findViewById(R.id.sample_1_analytics);
+        delete = findViewById(R.id.sample_1_delete);
 
         // Получаем данные о визитке, переданные через Intent
-        String cardId = getIntent().getStringExtra(EXTRA_CARD_ID);
         mAuth = FirebaseAuth.getInstance();
         businessCardRepository = new BusinessCardRepository(FirebaseFirestore.getInstance());
         reportRepository = new ReportRepository();
 
-        if (cardId != null){
-            businessCardRepository.searchBusinessCardById(cardId).thenAccept(result -> {
-                card = result;
-            });
-        }
-        else {
-            card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
-        }
+        card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
 
         // Заполняем данными
         if (card != null) {
@@ -156,16 +148,36 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
             }
         });
 
-        if(mAuth.getCurrentUser() != null){
+        userRepository.isActiveUserAdmin().thenAccept(result -> {
+            if(mAuth.getCurrentUser() != null){
 
-            if(mAuth.getCurrentUser().getUid().equals(card.getUserId())){
-                analytics.setVisibility(View.VISIBLE);
-                analytics.setOnClickListener(v -> {
-                    showStatsDialog(card.getViews(), card.getFavorites());
-                });
+                if(mAuth.getCurrentUser().getUid().equals(card.getUserId()) || result){
+                    analytics.setVisibility(View.VISIBLE);
+                    analytics.setOnClickListener(v -> {
+                        showStatsDialog(card.getViews(), card.getFavorites());
+                    });
+                    delete.setVisibility(View.VISIBLE);
+
+                    delete.setOnClickListener(v -> {
+                        // Создание и отображение диалога
+                        new AlertDialog.Builder(this)
+                                .setTitle("Удаление визитки")
+                                .setMessage("Вы точно уверены, данные будут удалены БЕЗ ВОЗМОЖНОСТИ ВОЗВРАТА?")
+                                .setPositiveButton("Ок", (dialog, which) -> {
+                                    businessCardRepository.deleteBusinessCardById(card.getCardId());
+                                    finish();
+                                })
+                                .setNegativeButton("Отмена", (dialog, which) -> {
+                                    // Закрытие диалога
+                                    dialog.dismiss();
+                                })
+                                .show();
+                    });
+
+                }
+
             }
-
-        }
+        });
     }
 
     private void showQRCode(Bitmap qrBitmap) {
