@@ -1,7 +1,9 @@
 package volosyuk.easybizcard;
 
-import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.TextView;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -25,6 +27,8 @@ public class MyCardsActivity extends AppCompatActivity {
     private List<BusinessCard> businessCards = new ArrayList<>();
     private BusinessCardRepository businessCardRepository;
     private UserRepository userRepository;
+    private FirebaseAuth mAuth;
+    private TextView hint;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,47 +38,51 @@ public class MyCardsActivity extends AppCompatActivity {
         // Инициализация компонентов
         recyclerView = findViewById(R.id.recycler_view_cards);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        mAuth = FirebaseAuth.getInstance();
         FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
         businessCardRepository = new BusinessCardRepository(firebaseFirestore);
-        userRepository = new UserRepository(firebaseFirestore, FirebaseAuth.getInstance());
+        userRepository = new UserRepository(firebaseFirestore, mAuth);
+        hint = findViewById(R.id.my_cards_text);
 
         adapter = new CardAdapter(this, businessCards);
         recyclerView.setAdapter(adapter);
 
-        if(getIntent().getBooleanExtra(EXTRA_BOOKMARKS, false)){
-            userRepository.getAllBookmarkedCards().thenAccept(result -> {
-                businessCards.clear();  // Очищаем текущий список
-                businessCards.addAll(result);  // Добавляем новые данные
-                adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
-            });
-        }
-        else{
-            // Загрузка визиток из Firestore
-            businessCardRepository.getAllBusinessCards().thenAccept(result -> {
-                businessCards.clear();  // Очищаем текущий список
-                businessCards.addAll(result);  // Добавляем новые данные
-                adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
-            });
-        }
+        loadCards();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        loadCards();
+    }
+
+    private void loadCards(){
         if(getIntent().getBooleanExtra(EXTRA_BOOKMARKS, false)){
             userRepository.getAllBookmarkedCards().thenAccept(result -> {
                 businessCards.clear();  // Очищаем текущий список
                 businessCards.addAll(result);  // Добавляем новые данные
                 adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
+                hint.setVisibility(View.GONE);
+                if(result.isEmpty()){
+                    hint.setText("У ваз нет сохраненных визиток");
+                    hint.setVisibility(View.VISIBLE);
+                }
             });
         }
         else{
-            // Загрузка визиток из Firestore
-            businessCardRepository.getAllBusinessCards().thenAccept(result -> {
-                businessCards.clear();  // Очищаем текущий список
-                businessCards.addAll(result);  // Добавляем новые данные
-                adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
-            });
+            if(mAuth.getCurrentUser().getUid() != null){
+                // Загрузка визиток из Firestore
+                businessCardRepository.getUserBusinessCards(mAuth.getCurrentUser().getUid()).thenAccept(result -> {
+                    businessCards.clear();  // Очищаем текущий список
+                    businessCards.addAll(result);  // Добавляем новые данные
+                    adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
+                    hint.setVisibility(View.GONE);
+                    if (result.isEmpty()){
+                        hint.setText("У ваз нет созданных визиток");
+                        hint.setVisibility(View.VISIBLE);
+                    }
+                });
+            }
         }
     }
 }

@@ -1,7 +1,6 @@
 package volosyuk.easybizcard.adapters;
 
 import android.content.Context;
-import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,9 +10,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
 
-import volosyuk.easybizcard.BusinessCardDetailActivity;
 import volosyuk.easybizcard.R;
-import volosyuk.easybizcard.models.BusinessCard;
 import volosyuk.easybizcard.models.Report;
 import volosyuk.easybizcard.utils.ReportRepository;
 
@@ -46,7 +43,12 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
         holder.messageTextView.setText(report.getMessage());
         holder.cardIdTextView.setText("Card ID: " + report.getCardId());
         holder.userIdTextView.setText("User ID: " + report.getUserId());
-        holder.status.setText("Статус: " + report.getConsidered());
+        if (report.getConsidered()){
+            holder.status.setText("Статус: просмотренно");
+        }
+        else {
+            holder.status.setText("Статус: не просмотренно");
+        }
 
         // Устанавливаем клик для toCard с использованием интерфейса
         holder.toCard.setOnClickListener(v -> {
@@ -57,8 +59,9 @@ public class ReportAdapter extends RecyclerView.Adapter<ReportAdapter.ReportView
 
         holder.consideredButton.setOnClickListener(v -> {
             // Логика для пометки жалобы как рассмотренной
-            report.setConsidered(true);
+            report.setConsidered(!report.getConsidered());
             holder.reportRepository.updateReportStatus(report.getReportId(), report.getConsidered());
+            notifyDataSetChanged();
         });
     }
 

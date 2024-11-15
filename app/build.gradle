@@ -49,6 +49,7 @@ dependencies {
     implementation libs.firebase.database
     implementation libs.zxing.android.embedded // qr
     implementation libs.mpandroidchart // диаграммы
+    implementation libs.colorpicker // выбор цвета
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

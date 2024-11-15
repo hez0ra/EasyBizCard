@@ -3,19 +3,22 @@ package volosyuk.easybizcard;
 import android.Manifest;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -23,6 +26,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -30,10 +34,13 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.exifinterface.media.ExifInterface;
 
-import com.google.android.gms.tasks.OnFailureListener;
+import com.bumptech.glide.Glide;
+import com.flask.colorpicker.ColorPickerView;
+import com.flask.colorpicker.OnColorSelectedListener;
+import com.flask.colorpicker.builder.ColorPickerClickListener;
+import com.flask.colorpicker.builder.ColorPickerDialogBuilder;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
@@ -51,11 +58,15 @@ import volosyuk.easybizcard.utils.BusinessCardRepository;
 public class EditActivity extends AppCompatActivity {
 
     public static final String EXTRA_LAYOUT = "layout type";
+    public static final String EXTRA_CARD = "card";
+    public static final String EXTRA_UPDATED_CARD = "updated card";
     private static final int STORAGE_PERMISSION_CODE = 101;
+    private int textColor = Color.BLACK;  // По умолчанию чёрный
+    private int backgroundColor = Color.WHITE;  // По умолчанию белый
 
     CircleImageView image;
     EditText title, description, number, email, site;
-    ImageButton whatsapp, telegram, viber, vkontakte, instagram, facebook;
+    ImageButton whatsapp, telegram, viber, vkontakte, instagram, facebook, backgroundColorBtn, textColorBtn;
     Button save;
 
     private StorageReference storageRef;
@@ -95,6 +106,8 @@ public class EditActivity extends AppCompatActivity {
                 facebook = findViewById(R.id.sample_1_edit_links_facebook);
                 telegram = findViewById(R.id.sample_1_edit_links_telegram);
                 save = findViewById(R.id.sample_1_edit_save);
+                backgroundColorBtn = findViewById(R.id.sample_1_edit_background);
+                textColorBtn = findViewById(R.id.sample_1_edit_background_format_text);
 
                 image.setOnClickListener(view -> {
                     if (ContextCompat.checkSelfPermission(EditActivity.this,
@@ -138,6 +151,69 @@ public class EditActivity extends AppCompatActivity {
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Загрузка изображения...");
         progressDialog.setCancelable(false);  // Запрещаем отмену загрузки
+
+        // Обработка выбора цвета текста
+        backgroundColorBtn.setOnClickListener(v -> {
+            ColorPickerDialogBuilder
+                    .with(this)
+                    .setTitle("Choose color")
+                    .initialColor(backgroundColor)
+                    .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
+                    .density(12)
+                    .setOnColorSelectedListener(new OnColorSelectedListener() {
+                        @Override
+                        public void onColorSelected(int selectedColor) {
+
+                        }
+                    })
+                    .setPositiveButton("Подтвердить", new ColorPickerClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int selectedColor, Integer[] allColors) {
+                            backgroundColor = selectedColor;
+                            ScrollView layout = findViewById(R.id.sample_1_edit);
+                            layout.setBackgroundColor(selectedColor);
+                        }
+                    })
+                    .setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                        }
+                    })
+                    .build()
+                    .show();
+        });
+
+        // Обработка выбора цвета фона
+        textColorBtn.setOnClickListener(v -> {
+            ColorPickerDialogBuilder
+                    .with(this)
+                    .setTitle("Choose color")
+                    .initialColor(textColor)
+                    .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
+                    .density(12)
+                    .setOnColorSelectedListener(new OnColorSelectedListener() {
+                        @Override
+                        public void onColorSelected(int selectedColor) {
+
+                        }
+                    })
+                    .setPositiveButton("Подтвердить", new ColorPickerClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int selectedColor, Integer[] allColors) {
+                            textColor = selectedColor;
+                            updatePreview();
+                        }
+                    })
+                    .setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                        }
+                    })
+                    .build()
+                    .show();
+        });
+
+        checkIntentExtra();
     }
 
     private ActivityResultLauncher<Intent> galleryLauncher = registerForActivityResult(
@@ -334,8 +410,50 @@ public class EditActivity extends AppCompatActivity {
         try {
             businessCardRepository.addBusinessCard(card);
             Toast.makeText(this, "Успешное сохранение визитки", Toast.LENGTH_SHORT).show();
+            finish();
         } catch (Exception e) {
             Toast.makeText(this, "Ошибка сохранения визитки", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void updatePreview() {
+        title.setTextColor(textColor);
+        description.setTextColor(textColor);
+        number.setTextColor(textColor);
+        email.setTextColor(textColor);
+        site.setTextColor(textColor);
+    }
+
+    private void checkIntentExtra(){
+        BusinessCard card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
+        if(card != null){
+            Glide.with(this)
+                    .load(card.getImageUrl())  // Загрузка изображения
+                    .into(image);
+
+            imageUrl = card.getImageUrl();
+            title.setText(card.getTitle());
+            description.setText(card.getDescription());
+            number.setText(card.getNumber());
+            email.setText(card.getEmail());
+            site.setText(card.getSite());
+            links = card.getLinks();
+            save.setText("Сохранить изменения");
+
+            save.setOnClickListener(v -> {
+                try {
+                    BusinessCard result = new BusinessCard(card.getUserId(), title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links);
+                    result.setCardId(card.getCardId());
+                    businessCardRepository.updateBusinessCard(result);
+                    Toast.makeText(this, "Успешное сохранение визитки", Toast.LENGTH_SHORT).show();
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra(EXTRA_UPDATED_CARD, result); // Обновленная визитка
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
+                } catch (Exception e) {
+                    Toast.makeText(this, "Ошибка сохранения визитки", Toast.LENGTH_SHORT).show();
+                }
+            });
         }
     }
 

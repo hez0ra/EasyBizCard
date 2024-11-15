@@ -27,13 +27,23 @@
             android:id="@+id/sample_1_delete"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginStart="8dp"
             android:layout_marginTop="16dp"
             android:background="@drawable/background_white_rounded"
-            android:visibility="gone"
             android:src="@drawable/icon_delete"
-            app:layout_constraintStart_toStartOf="parent"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="@+id/sample_1_analytics"
             app:layout_constraintTop_toBottomOf="@+id/sample_1_analytics" />
+
+        <ImageButton
+            android:id="@+id/sample_1_edit_btn"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/background_white_rounded"
+            android:src="@drawable/icon_edit"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="@+id/sample_1_delete"
+            app:layout_constraintTop_toBottomOf="@+id/sample_1_delete" />
 
         <ImageButton
             android:id="@+id/sample_1_share"

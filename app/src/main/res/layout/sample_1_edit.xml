@@ -12,6 +12,27 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
+        <ImageButton
+            android:id="@+id/sample_1_edit_background"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/background_white_rounded"
+            android:src="@drawable/icon_color_lens"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/sample_1_edit_background_format_text"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:background="@drawable/background_white_rounded"
+            android:src="@drawable/icon_format_color_text"
+            app:layout_constraintEnd_toEndOf="@+id/sample_1_edit_background"
+            app:layout_constraintTop_toBottomOf="@+id/sample_1_edit_background" />
+
         <de.hdodenhof.circleimageview.CircleImageView
             android:id="@+id/sample_1_edit_image"
             android:layout_width="160dp"

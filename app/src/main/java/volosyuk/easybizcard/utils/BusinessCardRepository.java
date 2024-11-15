@@ -24,6 +24,36 @@ public class BusinessCardRepository {
         this.businessCardCollection = db.collection("business_cards");
     }
 
+    // Метод для получения визиток текущего пользователя
+    public CompletableFuture<List<BusinessCard>> getUserBusinessCards(String userId) {
+        CompletableFuture<List<BusinessCard>> future = new CompletableFuture<>();
+        List<BusinessCard> businessCardList = new ArrayList<>();
+
+        businessCardCollection
+                .whereEqualTo("userId", userId) // Фильтр по userId
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        QuerySnapshot documents = task.getResult();
+                        if (documents != null) {
+                            for (QueryDocumentSnapshot document : documents) {
+                                BusinessCard card = document.toObject(BusinessCard.class);
+                                card.setCardId(document.getId());
+                                businessCardList.add(card);
+                            }
+                            future.complete(businessCardList);
+                        } else {
+                            future.completeExceptionally(new Exception("No documents found"));
+                        }
+                    } else {
+                        future.completeExceptionally(task.getException());
+                    }
+                });
+
+        return future;
+    }
+
+
     // Метод для получения всех визиток
     public CompletableFuture<List<BusinessCard>> getAllBusinessCards() {
         CompletableFuture<List<BusinessCard>> future = new CompletableFuture<>();

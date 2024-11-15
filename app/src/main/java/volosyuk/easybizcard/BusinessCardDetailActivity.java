@@ -17,6 +17,9 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 
 
@@ -36,7 +39,6 @@ import java.util.List;
 
 import de.hdodenhof.circleimageview.CircleImageView;
 import volosyuk.easybizcard.models.BusinessCard;
-import volosyuk.easybizcard.models.Report;
 import volosyuk.easybizcard.utils.BusinessCardRepository;
 import volosyuk.easybizcard.utils.QRCodeGenerator;
 import volosyuk.easybizcard.utils.ReportRepository;
@@ -52,7 +54,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
 
     private CircleImageView imageView;
     private TextView title, description, phone, email, site;
-    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report, analytics, delete;
+    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report, analytics, delete, edit;
     private BusinessCardRepository businessCardRepository;
     private FirebaseAuth mAuth;
     private BusinessCard card;
@@ -83,6 +85,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         report = findViewById(R.id.sample_1_report);
         analytics = findViewById(R.id.sample_1_analytics);
         delete = findViewById(R.id.sample_1_delete);
+        edit = findViewById(R.id.sample_1_edit_btn);
 
         // Получаем данные о визитке, переданные через Intent
         mAuth = FirebaseAuth.getInstance();
@@ -153,10 +156,12 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
 
                 if(mAuth.getCurrentUser().getUid().equals(card.getUserId()) || result){
                     analytics.setVisibility(View.VISIBLE);
+                    delete.setVisibility(View.VISIBLE);
+                    edit.setVisibility(View.VISIBLE);
+
                     analytics.setOnClickListener(v -> {
                         showStatsDialog(card.getViews(), card.getFavorites());
                     });
-                    delete.setVisibility(View.VISIBLE);
 
                     delete.setOnClickListener(v -> {
                         // Создание и отображение диалога
@@ -173,6 +178,13 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
                                 })
                                 .show();
                     });
+
+                    edit.setOnClickListener(v -> {
+                        Intent intent = new Intent(this, EditActivity.class);
+                        intent.putExtra(EditActivity.EXTRA_CARD, card);
+                        editCardLauncher.launch(intent);
+                    });
+
 
                 }
 
@@ -320,6 +332,35 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
                 .create()
                 .show();
     }
+
+    private final ActivityResultLauncher<Intent> editCardLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    BusinessCard updatedCard = (BusinessCard) result.getData().getSerializableExtra(EditActivity.EXTRA_UPDATED_CARD);
+                    if (updatedCard != null) {
+                        updateUI(updatedCard);
+                    }
+                }
+            }
+    );
+
+    // Метод для обновления UI
+    private void updateUI(BusinessCard updatedCard) {
+        card = updatedCard; // Обновляем текущую визитку
+        title.setText(card.getTitle());
+        description.setText(card.getDescription());
+        phone.setText(card.getNumber());
+        email.setText(card.getEmail());
+        site.setText(card.getSite());
+
+        Glide.with(this)
+                .load(card.getImageUrl())
+                .into(imageView);
+
+        setupSocialLinks(card); // Повторно инициализируем социальные ссылки
+    }
+
 
 
 }
