@@ -12,10 +12,12 @@ import android.util.Log;
 import android.util.Patterns;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.ScrollView;
 import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -59,6 +61,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private BusinessCard card;
     private ReportRepository reportRepository;
+    private ScrollView mainLayout;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,24 +71,25 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         userRepository = new UserRepository(FirebaseFirestore.getInstance(), FirebaseAuth.getInstance());
 
         // Инициализация компонентов
-        imageView = findViewById(R.id.sample_1_image);
-        title = findViewById(R.id.sample_1_title);
-        description = findViewById(R.id.sample_1_description);
-        phone = findViewById(R.id.sample_1_phone);
-        email = findViewById(R.id.sample_1_email);
-        site = findViewById(R.id.sample_1_site);
-        qrCodeBtn = findViewById(R.id.sample_1_share);
-        whatsapp = findViewById(R.id.sample_1_links_whatsapp);
-        viber = findViewById(R.id.sample_1_links_viber);
-        telegram = findViewById(R.id.sample_1_links_telegram);
-        facebook = findViewById(R.id.sample_1_links_facebook);
-        vkontakte = findViewById(R.id.sample_1_links_vkontakte);
-        instagram = findViewById(R.id.sample_1_links_instagram);
-        bookmark = findViewById(R.id.sample_1_bookmark);
-        report = findViewById(R.id.sample_1_report);
+        imageView = findViewById(R.id.sample_2_edit_image);
+        title = findViewById(R.id.sample_2_edit_title);
+        description = findViewById(R.id.sample_2_edit_description);
+        phone = findViewById(R.id.sample_2_edit_number);
+        email = findViewById(R.id.sample_2_edit_email);
+        site = findViewById(R.id.sample_2_edit_site);
+        qrCodeBtn = findViewById(R.id.sample_2_share);
+        whatsapp = findViewById(R.id.sample_2_edit_links_whatsapp);
+        viber = findViewById(R.id.sample_2_edit_links_viber);
+        telegram = findViewById(R.id.sample_2_edit_links_telegram);
+        facebook = findViewById(R.id.sample_2_edit_links_facebook);
+        vkontakte = findViewById(R.id.sample_2_edit_links_vkontakte);
+        instagram = findViewById(R.id.sample_2_edit_links_instagram);
+        bookmark = findViewById(R.id.sample_2_bookmark);
+        report = findViewById(R.id.sample_2_report);
         analytics = findViewById(R.id.sample_1_analytics);
         delete = findViewById(R.id.sample_1_delete);
         edit = findViewById(R.id.sample_1_edit_btn);
+        mainLayout = findViewById(R.id.sample_2_edit);
 
         // Получаем данные о визитке, переданные через Intent
         mAuth = FirebaseAuth.getInstance();
@@ -105,7 +109,8 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
             phone.setText(card.getNumber());
             email.setText(card.getEmail());
             site.setText(card.getSite());
-
+            setTextColor(mainLayout, Color.parseColor(card.getTextColor()));
+            mainLayout.setBackgroundColor(Color.parseColor(card.getBackgroundColor()));
             qrCodeBtn.setOnClickListener(v -> {
                 String cardIdForQR = card.getCardId();
 
@@ -241,9 +246,9 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         setupLink(card.getInstagram(), instagram);
         // Скрываем весь блок социальных сетей, если все ссылки пусты
         if (card.getWhatsApp() == null && card.getViber() == null && card.getTelegram() == null && card.getFacebook() == null && card.getVk() == null && card.getInstagram() == null) {
-            TextView title = findViewById(R.id.sample_1_links_title);
+            TextView title = findViewById(R.id.sample_2_links_title);
             title.setVisibility(View.GONE);
-            View splitBar = findViewById(R.id.sample_1_links_bar);
+            View splitBar = findViewById(R.id.sample_2_links_bar);
             splitBar.setVisibility(View.GONE);
         }
     }
@@ -353,6 +358,8 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         phone.setText(card.getNumber());
         email.setText(card.getEmail());
         site.setText(card.getSite());
+        setTextColor(mainLayout, Color.parseColor(card.getTextColor()));
+        mainLayout.setBackgroundColor(Color.parseColor(card.getBackgroundColor()));
 
         Glide.with(this)
                 .load(card.getImageUrl())
@@ -361,6 +368,15 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         setupSocialLinks(card); // Повторно инициализируем социальные ссылки
     }
 
-
+    private void setTextColor(ViewGroup layout, int color) {
+        for (int i = 0; i < layout.getChildCount(); i++) {
+            View child = layout.getChildAt(i);
+            if (child instanceof TextView) {
+                ((TextView) child).setTextColor(color);
+            } else if (child instanceof ViewGroup) {
+                setTextColor((ViewGroup) child, color);
+            }
+        }
+    }
 
 }

@@ -1,132 +1,80 @@
 <ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/sample_1_edit"
-    android:fillViewport="true"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:id="@+id/sample_3_edit_edit"
+    android:fillViewport="true"
     android:background="@color/background">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <ImageButton
-            android:id="@+id/sample_1_edit_background"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginTop="8dp"
-            android:layout_marginEnd="8dp"
-            android:background="@drawable/background_white_rounded"
-            android:src="@drawable/icon_color_lens"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
-
-        <ImageButton
-            android:id="@+id/sample_1_edit_background_format_text"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:layout_marginTop="16dp"
-            android:background="@drawable/background_white_rounded"
-            android:src="@drawable/icon_format_color_text"
-            app:layout_constraintEnd_toEndOf="@+id/sample_1_edit_background"
-            app:layout_constraintTop_toBottomOf="@+id/sample_1_edit_background" />
-
-        <de.hdodenhof.circleimageview.CircleImageView
-            android:id="@+id/sample_1_edit_image"
-            android:layout_width="160dp"
-            android:layout_height="160dp"
-            android:layout_marginTop="28dp"
-            android:src="@drawable/icon_image"
-            app:civ_border_color="@color/black"
-            app:civ_border_width="1dp"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
+        <!-- Header Image -->
+        <ImageView
+            android:id="@+id/sample_3_edit_image"
+            android:layout_width="0dp"
+            android:layout_height="200dp"
+            android:scaleType="centerCrop"
+            android:src="@drawable/minilogo"
+            app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            app:layout_constraintEnd_toEndOf="parent" />
 
-        <EditText
-            android:id="@+id/sample_1_edit_title"
+        <!-- Title -->
+        <TextView
+            android:id="@+id/sample_3_edit_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
             android:layout_marginTop="16dp"
-            android:layout_marginEnd="8dp"
-            android:hint="Ваш заголовок"
-            android:gravity="center"
-            android:textSize="24sp"
-            android:backgroundTint="@color/second"
+            android:text="Заголовок"
             android:textColor="@color/text"
-            android:textColorHint="@color/second"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintHorizontal_bias="0.5"
+            android:textSize="22sp"
+            app:layout_constraintTop_toBottomOf="@id/sample_3_edit_image"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/sample_1_edit_image" />
+            app:layout_constraintEnd_toEndOf="parent" />
 
-        <EditText
-            android:id="@+id/sample_1_edit_description"
+        <!-- Description -->
+        <TextView
+            android:id="@+id/sample_3_edit_description"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginHorizontal="16dp"
             android:layout_marginStart="8dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:hint="Основной текст"
-            android:backgroundTint="@color/second"
+            android:text="Описание текста здесь..."
             android:textColor="@color/text"
-            android:textColorHint="@color/second"
-            app:layout_constraintBottom_toTopOf="@+id/sample_1_edit_links"
+            app:layout_constraintBottom_toTopOf="@+id/template_3_links"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/sample_1_edit_title"
+            app:layout_constraintTop_toBottomOf="@id/sample_3_edit_title"
             app:layout_constraintVertical_bias="0.0" />
 
+        <!-- Links -->
         <LinearLayout
-            android:id="@+id/sample_1_edit_links"
+            android:id="@+id/template_3_links"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
             android:orientation="vertical"
             android:padding="8dp"
-            app:layout_constraintBottom_toTopOf="@+id/sample_1_edit_save"
+            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Телефон:" />
-
-            <EditText
-                android:id="@+id/sample_1_edit_number"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:backgroundTint="@color/second"
-                android:textColor="@color/text"
-                android:textColorHint="@color/second"
-                android:hint="+375-XX-XXX-XX-XX" />
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:layout_marginVertical="8dp"
-                android:backgroundTint="@color/second"
-                android:textColor="@color/text"
-                android:background="@color/black" />
+                android:text="Телефон:"
+                android:textColor="@color/text" />
 
             <TextView
+                android:id="@+id/sample_3_edit_phone"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Email:" />
-
-            <EditText
-                android:id="@+id/sample_1_edit_email"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:backgroundTint="@color/second"
-                android:textColor="@color/text"
-                android:textColorHint="@color/second"
-                android:hint="example@gmail.com" />
+                android:text="+375-00-000-00-00"
+                android:textColor="@color/text" />
 
             <View
                 android:layout_width="match_parent"
@@ -137,7 +85,27 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Социальные сети:" />
+                android:text="Email:"
+                android:textColor="@color/text" />
+
+            <TextView
+                android:id="@+id/sample_3_edit_email"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="example@gmail.com"
+                android:textColor="@color/text" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:layout_marginVertical="8dp"
+                android:background="@color/black" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Социальные сети:"
+                android:textColor="@color/text" />
 
             <HorizontalScrollView
                 android:layout_width="wrap_content"
@@ -149,7 +117,7 @@
                     android:orientation="horizontal">
 
                     <ImageButton
-                        android:id="@+id/sample_1_edit_links_whatsapp"
+                        android:id="@+id/sample_3_edit_links_whatsapp"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:layout_marginEnd="8dp"
@@ -157,7 +125,7 @@
                         android:src="@drawable/icon_whatsapp" />
 
                     <ImageButton
-                        android:id="@+id/sample_1_edit_links_viber"
+                        android:id="@+id/sample_3_edit_links_viber"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:layout_marginEnd="8dp"
@@ -165,7 +133,7 @@
                         android:src="@drawable/icon_viber" />
 
                     <ImageButton
-                        android:id="@+id/sample_1_edit_links_telegram"
+                        android:id="@+id/sample_3_edit_links_telegram"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:layout_marginEnd="8dp"
@@ -173,7 +141,7 @@
                         android:src="@drawable/icon_telegram" />
 
                     <ImageButton
-                        android:id="@+id/sample_1_edit_links_facebook"
+                        android:id="@+id/sample_3_edit_links_facebook"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:layout_marginEnd="8dp"
@@ -181,7 +149,7 @@
                         android:src="@drawable/icon_facebook" />
 
                     <ImageButton
-                        android:id="@+id/sample_1_edit_links_vkontakte"
+                        android:id="@+id/sample_3_edit_links_vkontakte"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:layout_marginEnd="8dp"
@@ -189,12 +157,12 @@
                         android:src="@drawable/icon_vk" />
 
                     <ImageButton
-                        android:id="@+id/sample_1_edit_links_instagram"
+                        android:id="@+id/sample_3_edit_links_instagram"
                         android:layout_width="48dp"
                         android:layout_height="48dp"
                         android:layout_marginEnd="8dp"
                         android:background="@android:color/transparent"
-                        android:src="@drawable/icon_instagram" />
+                        android:src="@drawable/icon_instagram"/>
 
                 </LinearLayout>
 
@@ -209,29 +177,17 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Сайт:" />
+                android:text="Сайт:"
+                android:textColor="@color/text" />
 
-            <EditText
-                android:id="@+id/sample_1_edit_site"
+            <TextView
+                android:id="@+id/sample_3_edit_site"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:hint="https://example.com"
-                android:backgroundTint="@color/second"
-                android:textColorHint="@color/second"
+                android:text="https://example.com"
                 android:textColor="#0000FF" />
 
         </LinearLayout>
-
-        <Button
-            android:id="@+id/sample_1_edit_save"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:backgroundTint="@color/main"
-            android:text="Создать"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

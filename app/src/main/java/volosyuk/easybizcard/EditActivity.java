@@ -14,9 +14,11 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -26,7 +28,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
@@ -64,7 +65,7 @@ public class EditActivity extends AppCompatActivity {
     private int textColor = Color.BLACK;  // По умолчанию чёрный
     private int backgroundColor = Color.WHITE;  // По умолчанию белый
 
-    CircleImageView image;
+    ImageView image;
     EditText title, description, number, email, site;
     ImageButton whatsapp, telegram, viber, vkontakte, instagram, facebook, backgroundColorBtn, textColorBtn;
     Button save;
@@ -77,6 +78,7 @@ public class EditActivity extends AppCompatActivity {
     private String imageUrl;
     private Bitmap selectedBitmap;
     private BusinessCardRepository businessCardRepository;
+    private ScrollView mainLayout;
 
 
 
@@ -93,7 +95,7 @@ public class EditActivity extends AppCompatActivity {
                     v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
                     return insets;
                 });
-                image = findViewById(R.id.sample_1_edit_image);
+                image = (ImageView) findViewById(R.id.sample_1_edit_image);
                 title = findViewById(R.id.sample_1_edit_title);
                 description = findViewById(R.id.sample_1_edit_description);
                 number = findViewById(R.id.sample_1_edit_number);
@@ -108,38 +110,32 @@ public class EditActivity extends AppCompatActivity {
                 save = findViewById(R.id.sample_1_edit_save);
                 backgroundColorBtn = findViewById(R.id.sample_1_edit_background);
                 textColorBtn = findViewById(R.id.sample_1_edit_background_format_text);
+                mainLayout = findViewById(R.id.sample_1_edit);
+                break;
 
-                image.setOnClickListener(view -> {
-                    if (ContextCompat.checkSelfPermission(EditActivity.this,
-                            Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                        openGallery();
-                    } else {
-                        requestStoragePermission();
-                    }
+            case 2:
+                setContentView(R.layout.sample_2_edit);
+                ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.sample_2_edit), (v, insets) -> {
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                    return insets;
                 });
-
-                save.setOnClickListener(view -> {
-                    if (validateInputs()) {
-                        // Сначала загружаем изображение на Firebase
-                        uploadImageToFirebase(selectedBitmap, success -> {
-                            if (success) {
-                                // Затем сохраняем визитку в базе данных
-                                saveBusinessCardToDatabase(imageUrl);
-                            }
-                        });
-                    } else {
-                        Toast.makeText(this, "Пожалуйста, исправьте ошибки", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-
-                whatsapp.setOnClickListener(view -> showLinkInputDialog(whatsapp));
-                telegram.setOnClickListener(view -> showLinkInputDialog(telegram));
-                viber.setOnClickListener(view -> showLinkInputDialog(viber));
-                vkontakte.setOnClickListener(view -> showLinkInputDialog(vkontakte));
-                instagram.setOnClickListener(view -> showLinkInputDialog(instagram));
-                facebook.setOnClickListener(view -> showLinkInputDialog(facebook));
-
+                image = findViewById(R.id.sample_2_edit_image);
+                title = findViewById(R.id.sample_2_edit_title);
+                description = findViewById(R.id.sample_2_edit_description);
+                number = findViewById(R.id.sample_2_edit_number);
+                email = findViewById(R.id.sample_2_edit_email);
+                site = findViewById(R.id.sample_2_edit_site);
+                whatsapp = findViewById(R.id.sample_2_edit_links_whatsapp);
+                viber = findViewById(R.id.sample_2_edit_links_viber);
+                vkontakte = findViewById(R.id.sample_2_edit_links_vkontakte);
+                instagram = findViewById(R.id.sample_2_edit_links_instagram);
+                facebook = findViewById(R.id.sample_2_edit_links_facebook);
+                telegram = findViewById(R.id.sample_2_edit_links_telegram);
+                save = findViewById(R.id.sample_2_edit_save);
+                backgroundColorBtn = findViewById(R.id.sample_2_edit_background);
+                textColorBtn = findViewById(R.id.sample_2_edit_background_format_text);
+                mainLayout = findViewById(R.id.sample_2_edit);
                 break;
             default:
                 break;
@@ -151,6 +147,35 @@ public class EditActivity extends AppCompatActivity {
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Загрузка изображения...");
         progressDialog.setCancelable(false);  // Запрещаем отмену загрузки
+
+        image.setOnClickListener(view -> {
+            if (ContextCompat.checkSelfPermission(EditActivity.this,
+                    Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                openGallery();
+            } else {
+                requestStoragePermission();
+            }
+        });
+
+        save.setOnClickListener(view -> {
+            if (validateInputs()) {
+                // Сначала загружаем изображение на Firebase
+                uploadImageToFirebase(selectedBitmap, success -> {
+                    if (success) {
+                        // Затем сохраняем визитку в базе данных
+                        saveBusinessCardToDatabase(imageUrl);
+                    }
+                });
+            } else {
+                Toast.makeText(this, "Пожалуйста, исправьте ошибки", Toast.LENGTH_SHORT).show();
+            }
+        });
+        whatsapp.setOnClickListener(view -> showLinkInputDialog(whatsapp));
+        telegram.setOnClickListener(view -> showLinkInputDialog(telegram));
+        viber.setOnClickListener(view -> showLinkInputDialog(viber));
+        vkontakte.setOnClickListener(view -> showLinkInputDialog(vkontakte));
+        instagram.setOnClickListener(view -> showLinkInputDialog(instagram));
+        facebook.setOnClickListener(view -> showLinkInputDialog(facebook));
 
         // Обработка выбора цвета текста
         backgroundColorBtn.setOnClickListener(v -> {
@@ -170,8 +195,7 @@ public class EditActivity extends AppCompatActivity {
                         @Override
                         public void onClick(DialogInterface dialog, int selectedColor, Integer[] allColors) {
                             backgroundColor = selectedColor;
-                            ScrollView layout = findViewById(R.id.sample_1_edit);
-                            layout.setBackgroundColor(selectedColor);
+                            mainLayout.setBackgroundColor(selectedColor);
                         }
                     })
                     .setNegativeButton("Отмена", new DialogInterface.OnClickListener() {
@@ -438,12 +462,20 @@ public class EditActivity extends AppCompatActivity {
             email.setText(card.getEmail());
             site.setText(card.getSite());
             links = card.getLinks();
+            textColor = Color.parseColor(card.getTextColor());
+            backgroundColor = Color.parseColor(card.getBackgroundColor());
+            setTextColor(mainLayout, textColor);
+            mainLayout.setBackgroundColor(backgroundColor);
             save.setText("Сохранить изменения");
 
             save.setOnClickListener(v -> {
                 try {
                     BusinessCard result = new BusinessCard(card.getUserId(), title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links);
                     result.setCardId(card.getCardId());
+                    result.setTextColor(String.format("#%08X", (0xFFFFFFFF & textColor)));
+                    result.setBackgroundColor(String.format("#%08X", (0xFFFFFFFF & backgroundColor)));
+                    result.setViews(card.getViews());
+                    result.setFavorites(card.getFavorites());
                     businessCardRepository.updateBusinessCard(result);
                     Toast.makeText(this, "Успешное сохранение визитки", Toast.LENGTH_SHORT).show();
                     Intent resultIntent = new Intent();
@@ -454,6 +486,17 @@ public class EditActivity extends AppCompatActivity {
                     Toast.makeText(this, "Ошибка сохранения визитки", Toast.LENGTH_SHORT).show();
                 }
             });
+        }
+    }
+
+    private void setTextColor(ViewGroup layout, int color) {
+        for (int i = 0; i < layout.getChildCount(); i++) {
+            View child = layout.getChildAt(i);
+            if (child instanceof TextView) {
+                ((TextView) child).setTextColor(color);
+            } else if (child instanceof ViewGroup) {
+                setTextColor((ViewGroup) child, color);
+            }
         }
     }
 

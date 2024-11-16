@@ -1,6 +1,7 @@
 package volosyuk.easybizcard.models;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.Map;
 
 public class BusinessCard implements Serializable {
@@ -12,8 +13,8 @@ public class BusinessCard implements Serializable {
     public String email;
     public String site;
     public String imageUrl;
-    public Map<String, String> links;
-
+    public Map<String, String> links = new HashMap<>();
+    public Map<String, String> colors = new HashMap<>();
 
     private long views;
     private long favorites;
@@ -30,12 +31,17 @@ public class BusinessCard implements Serializable {
         this.links = links;
         this.views = 0;
         this.favorites = 0;
+        this.colors.put("background", "#FFFFFF"); // Белый фон
+        this.colors.put("text", "#000000"); // Чёрный текст
     }
 
     // Конструктор
-    public BusinessCard(String cardId, String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links) {
+    public BusinessCard(String cardId, String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links, Map<String, String> colors, long views, long favorites) {
         this(userId, title, description, number, email, site, imageUrl, links);
         this.cardId = cardId;
+        this.colors = colors;
+        this.views = views;
+        this.favorites = favorites;
     }
 
     // Пустой конструктор для Firebase
@@ -121,5 +127,29 @@ public class BusinessCard implements Serializable {
 
     public void setFavorites(long favorites) {
         this.favorites = favorites;
+    }
+
+    public Map<String, String> getColors() {
+        return colors;
+    }
+
+    public void setColors(Map<String, String> colors) {
+        this.colors = colors;
+    }
+
+    public String getBackgroundColor(){
+        return this.colors.get("background");
+    }
+
+    public String getTextColor(){
+        return this.colors.get("text");
+    }
+
+    public void setBackgroundColor(String color){
+        this.colors.put("background", color);
+    }
+
+    public void setTextColor(String color){
+        this.colors.put("text", color);
     }
 }
