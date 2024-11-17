@@ -8,6 +8,7 @@ import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -26,6 +27,7 @@ import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.EmailAuthProvider;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.squareup.picasso.Picasso;
@@ -38,6 +40,9 @@ import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.storage.UploadTask;
 import de.hdodenhof.circleimageview.CircleImageView;
+import volosyuk.easybizcard.utils.BusinessCardRepository;
+import volosyuk.easybizcard.utils.UserRepository;
+
 import androidx.exifinterface.media.ExifInterface;
 
 import java.io.ByteArrayOutputStream;
@@ -52,12 +57,14 @@ public class ProfileActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private FirebaseStorage storage;
     private ProgressDialog progressDialog;  // Прогресс-диалог для отображения состояния загрузки
+    BusinessCardRepository businessCardRepository;
 
     TextView email;
-    ImageButton toAdd;
-    Button changePassword, signOut;
+    ImageButton toAdd, toMyCards, toScan, toBookmarks;
+    Button changePassword, signOut, toAdminPanel;
     CircleImageView avatar;
     FirebaseUser user;
+    UserRepository userRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,12 +80,19 @@ public class ProfileActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         storage = FirebaseStorage.getInstance();
         storageRef = storage.getReference();
+        businessCardRepository = new BusinessCardRepository(FirebaseFirestore.getInstance());
 
         email = findViewById(R.id.profile_email);
         toAdd = findViewById(R.id.profile_to_add);
+        toBookmarks = findViewById(R.id.profile_to_bookmarks);
+        toScan = findViewById(R.id.profile_to_scan);
+        toMyCards = findViewById(R.id.profile_to_my_cards);
+        toAdminPanel = findViewById(R.id.profile_to_admin_panel);
         changePassword = findViewById(R.id.profile_change_password);
         signOut = findViewById(R.id.profile_sign_out);
         avatar = findViewById(R.id.profile_avatar);
+
+        userRepository = new UserRepository(FirebaseFirestore.getInstance(), FirebaseAuth.getInstance());
 
         progressDialog = new ProgressDialog(this);
         progressDialog.setMessage("Загрузка изображения...");
@@ -101,10 +115,39 @@ public class ProfileActivity extends AppCompatActivity {
             }
         });
 
-        toAdd.setOnClickListener(v -> {
+        toAdd.setOnClickListener(v ->{
             Intent intent = new Intent(this, AddActivity.class);
             startActivity(intent);
+            overridePendingTransition(0, 0);
             finish();
+        });
+
+        toMyCards.setOnClickListener(v ->{
+            Intent intent = new Intent(this, MyCardsActivity.class);
+            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, false);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
+        });
+
+        toScan.setOnClickListener(v ->{
+            Intent intent = new Intent(this, QRScannerActivity.class);
+            startActivityForResult(intent, 365);
+            overridePendingTransition(0, 0);
+        });
+
+        toBookmarks.setOnClickListener(v -> {
+            Intent intent = new Intent(this, MyCardsActivity.class);
+            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, true);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
+        });
+
+        toAdminPanel.setOnClickListener(v -> {
+            Intent intent = new Intent(this, AdminPanelActivity.class);
+            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, true);
+            startActivity(intent);
         });
 
         signOut.setOnClickListener(v -> {
@@ -115,11 +158,15 @@ public class ProfileActivity extends AppCompatActivity {
         });
 
         changePassword.setOnClickListener(v -> showChangePasswordDialog());
+
+        userRepository.isActiveUserAdmin().thenAccept(result -> {
+            if(result) toAdminPanel.setVisibility(View.VISIBLE);
+        });
     }
 
     private void showChangePasswordDialog() {
         // Применение стиля к диалогу
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
         builder.setTitle("Изменить пароль");
 
         // Установка пользовательского макета
@@ -281,13 +328,6 @@ public class ProfileActivity extends AppCompatActivity {
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                             progressDialog.dismiss();  // Скрываем диалог при успешной загрузке
                             Toast.makeText(ProfileActivity.this, "Изображение загружено", Toast.LENGTH_SHORT).show();
-
-                            userImageRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                                @Override
-                                public void onSuccess(Uri uri) {
-                                    saveImageUrlToPreferences(uri.toString());
-                                }
-                            });
                         }
                     }).addOnFailureListener(new OnFailureListener() {
                         @Override
@@ -300,20 +340,35 @@ public class ProfileActivity extends AppCompatActivity {
     }
 
     private void loadProfileImage() {
-        FirebaseUser currentUser = mAuth.getCurrentUser();
-        if (currentUser != null) {
-            String imageUrl = getImageUrlFromPreferences();
-            if (imageUrl != null) {
-                Picasso.get().load(imageUrl).into(avatar);
-            }
+        StorageReference userImageRef = storageRef.child("users/" + mAuth.getCurrentUser().getUid() + "/profile/");
+        userImageRef.getDownloadUrl()
+                .addOnSuccessListener(uri -> {
+                    // Используем Picasso для загрузки изображения
+                    Picasso.get()
+                            .load(uri.toString()) // URL изображения
+                            .placeholder(R.drawable.loading) // Плейсхолдер во время загрузки
+                            .error(R.drawable.placeholder_image) // Изображение при ошибке
+                            .into(avatar);
+                })
+                .addOnFailureListener(exception -> {
+                    // Устанавливаем дефолтное изображение при ошибке
+                    Log.e("EasyBizCard", "Ошибка загрузки URL: ", exception);
+                    avatar.setImageResource(R.drawable.placeholder_image);
+                });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 365 && resultCode == RESULT_OK) {
+            String qrCode = data.getStringExtra("SCAN_RESULT");
+
+            businessCardRepository.searchBusinessCardById(qrCode).thenAccept(card ->{
+                Intent intent = new Intent(this, BusinessCardDetailActivity.class);
+                intent.putExtra(BusinessCardDetailActivity.EXTRA_CARD, card);
+                overridePendingTransition(0, 0);
+                startActivity(intent);
+            });
         }
-    }
-
-    private void saveImageUrlToPreferences(String url) {
-        getSharedPreferences("userProfile", MODE_PRIVATE).edit().putString("profileImageUrl", url).apply();
-    }
-
-    private String getImageUrlFromPreferences() {
-        return getSharedPreferences("userProfile", MODE_PRIVATE).getString("profileImageUrl", null);
     }
 }

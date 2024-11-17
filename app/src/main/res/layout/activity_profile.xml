@@ -4,8 +4,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:id="@+id/profile"
-    android:background="@color/background"
-    android:padding="16dp">
+    android:background="@color/background">
 
     <de.hdodenhof.circleimageview.CircleImageView
         android:id="@+id/profile_avatar"
@@ -35,6 +34,20 @@
         app:layout_constraintTop_toBottomOf="@+id/profile_avatar" />
 
     <Button
+        android:id="@+id/profile_to_admin_panel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:backgroundTint="@color/main"
+        android:text="Админ панель"
+        android:textColor="@color/white"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@+id/profile_change_password"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintWidth_percent="0.6" />
+
+    <Button
         android:id="@+id/profile_change_password"
         android:backgroundTint="@color/main"
         android:layout_width="0dp"
@@ -51,29 +64,75 @@
 
     <Button
         android:id="@+id/profile_sign_out"
-        android:backgroundTint="@color/main"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_below="@id/profile_change_password"
-        android:layout_marginBottom="96dp"
+        android:layout_marginBottom="32dp"
+        android:backgroundTint="@color/main"
         android:text="Выйти"
         android:textColor="@color/white"
-        app:layout_constraintWidth_percent="0.6"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toTopOf="@+id/linearLayout"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/profile_email"
+        app:layout_constraintVertical_bias="0.922"
+        app:layout_constraintWidth_percent="0.6" />
 
-    <ImageButton
-        android:id="@+id/profile_to_add"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:id="@+id/linearLayout"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="10dp"
-        android:background="@android:color/transparent"
-        android:padding="10dp"
-        android:src="@drawable/icon_add"
+        android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        app:layout_constraintStart_toStartOf="parent">
+
+        <ImageButton
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@color/active"
+            android:padding="10dp"
+            android:src="@drawable/icon_profile" />
+
+        <ImageButton
+            android:id="@+id/profile_to_add"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:padding="10dp"
+            android:background="@android:color/transparent"
+            android:src="@drawable/icon_add"/>
+
+        <ImageButton
+            android:id="@+id/profile_to_scan"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:padding="10dp"
+            android:src="@drawable/icon_code_scanner" />
+
+        <ImageButton
+            android:id="@+id/profile_to_my_cards"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:padding="10dp"
+            android:src="@drawable/icon_storage" />
+
+
+        <ImageButton
+            android:id="@+id/profile_to_bookmarks"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:padding="10dp"
+            android:src="@drawable/icon_bookmark" />
+
+    </LinearLayout>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

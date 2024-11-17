@@ -27,6 +27,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:text="Шаблон 1"
+        android:backgroundTint="@color/main"
+        android:textColor="@color/white"
         app:layout_constraintStart_toStartOf="@+id/add_text_new"
         app:layout_constraintTop_toBottomOf="@+id/add_text_new" />
 
@@ -35,6 +37,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Шаблон 2"
+        android:backgroundTint="@color/main"
+        android:textColor="@color/white"
         app:layout_constraintEnd_toEndOf="@+id/add_text_new"
         app:layout_constraintTop_toTopOf="@+id/add_sample_1" />
 
@@ -44,6 +48,8 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
         android:text="Шаблон 3"
+        android:backgroundTint="@color/main"
+        android:textColor="@color/white"
         app:layout_constraintEnd_toEndOf="@+id/add_sample_2"
         app:layout_constraintStart_toStartOf="@+id/add_sample_1"
         app:layout_constraintTop_toBottomOf="@+id/add_sample_1" />
@@ -67,13 +73,12 @@
             android:src="@drawable/icon_profile" />
 
         <ImageButton
-            android:id="@+id/add_to_my_cards"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:background="@android:color/transparent"
+            android:layout_height="wrap_content"
             android:padding="10dp"
-            android:src="@drawable/icon_storage" />
+            android:background="@color/active"
+            android:src="@drawable/icon_add"/>
 
         <ImageButton
             android:id="@+id/add_to_scan"
@@ -85,6 +90,16 @@
             android:src="@drawable/icon_code_scanner" />
 
         <ImageButton
+            android:id="@+id/add_to_my_cards"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:background="@android:color/transparent"
+            android:padding="10dp"
+            android:src="@drawable/icon_storage" />
+
+
+        <ImageButton
             android:id="@+id/add_to_my_bookmarks"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -92,16 +107,6 @@
             android:background="@android:color/transparent"
             android:padding="10dp"
             android:src="@drawable/icon_bookmark" />
-
-        <ImageButton
-            android:id="@+id/add_to_admin_panel"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@android:color/transparent"
-            android:padding="10dp"
-            android:src="@drawable/icon_admin_panel_settings"
-            android:visibility="gone" />
 
     </LinearLayout>
 

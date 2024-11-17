@@ -52,7 +52,6 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import de.hdodenhof.circleimageview.CircleImageView;
 import volosyuk.easybizcard.models.BusinessCard;
 import volosyuk.easybizcard.utils.BusinessCardRepository;
 
@@ -79,6 +78,7 @@ public class EditActivity extends AppCompatActivity {
     private Bitmap selectedBitmap;
     private BusinessCardRepository businessCardRepository;
     private ScrollView mainLayout;
+    private int sample;
 
 
 
@@ -86,7 +86,7 @@ public class EditActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        int sample = getIntent().getIntExtra(EXTRA_LAYOUT, 1);
+        sample = getIntent().getIntExtra(EXTRA_LAYOUT, 1);
         switch (sample){
             case 1:
                 setContentView(R.layout.sample_1_edit);
@@ -132,11 +132,37 @@ public class EditActivity extends AppCompatActivity {
                 instagram = findViewById(R.id.sample_2_edit_links_instagram);
                 facebook = findViewById(R.id.sample_2_edit_links_facebook);
                 telegram = findViewById(R.id.sample_2_edit_links_telegram);
-                save = findViewById(R.id.sample_2_edit_save);
+                save = findViewById(R.id.sample_3_edit_save);
                 backgroundColorBtn = findViewById(R.id.sample_2_edit_background);
                 textColorBtn = findViewById(R.id.sample_2_edit_background_format_text);
                 mainLayout = findViewById(R.id.sample_2_edit);
                 break;
+
+            case 3:
+                setContentView(R.layout.sample_3_edit);
+                ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.sample_3_edit), (v, insets) -> {
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                    return insets;
+                });
+                image = findViewById(R.id.sample_3_edit_image);
+                title = findViewById(R.id.sample_3_edit_title);
+                description = findViewById(R.id.sample_3_edit_description);
+                number = findViewById(R.id.sample_3_edit_number);
+                email = findViewById(R.id.sample_3_edit_email);
+                site = findViewById(R.id.sample_3_edit_site);
+                whatsapp = findViewById(R.id.sample_3_edit_links_whatsapp);
+                viber = findViewById(R.id.sample_3_edit_links_viber);
+                vkontakte = findViewById(R.id.sample_3_edit_links_vkontakte);
+                instagram = findViewById(R.id.sample_3_edit_links_instagram);
+                facebook = findViewById(R.id.sample_3_edit_links_facebook);
+                telegram = findViewById(R.id.sample_3_edit_links_telegram);
+                save = findViewById(R.id.sample_3_edit_save);
+                backgroundColorBtn = findViewById(R.id.sample_3_edit_background);
+                textColorBtn = findViewById(R.id.sample_3_edit_background_format_text);
+                mainLayout = findViewById(R.id.sample_3_edit);
+                break;
+
             default:
                 break;
         }
@@ -345,7 +371,7 @@ public class EditActivity extends AppCompatActivity {
             inputLink.setText(existingLink);  // Заполняем EditText существующей ссылкой
         }
 
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
         builder.setTitle("Введите ссылку")
                 .setView(dialogView)
                 .setPositiveButton("Сохранить", (dialog, which) -> {
@@ -430,7 +456,7 @@ public class EditActivity extends AppCompatActivity {
 
     private void saveBusinessCardToDatabase(String imageUrl) {
         String userId = mAuth.getCurrentUser().getUid();
-        BusinessCard card = new BusinessCard(userId, title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links);
+        BusinessCard card = new BusinessCard(userId, title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links, sample);
         try {
             businessCardRepository.addBusinessCard(card);
             Toast.makeText(this, "Успешное сохранение визитки", Toast.LENGTH_SHORT).show();
@@ -470,7 +496,7 @@ public class EditActivity extends AppCompatActivity {
 
             save.setOnClickListener(v -> {
                 try {
-                    BusinessCard result = new BusinessCard(card.getUserId(), title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links);
+                    BusinessCard result = new BusinessCard(card.getUserId(), title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links, card.getSample());
                     result.setCardId(card.getCardId());
                     result.setTextColor(String.format("#%08X", (0xFFFFFFFF & textColor)));
                     result.setBackgroundColor(String.format("#%08X", (0xFFFFFFFF & backgroundColor)));

@@ -72,34 +72,59 @@ public class RegisterActivity extends AppCompatActivity {
         });
     }
 
-    //TODO: добавить уведомление о конеретной проблеме (слишком короткий пароль или пустое поле)
-
-    private void register(){
-        final String email = this.email.getText().toString();
-        final String password = this.password.getText().toString();
-        final String passwordConfirm = this.passwordConfirm.getText().toString();
+    private void register() {
+        final String emailValue = this.email.getText().toString().trim();
+        final String passwordValue = this.password.getText().toString().trim();
+        final String passwordConfirmValue = this.passwordConfirm.getText().toString().trim();
 
         String emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
         Pattern pattern = Pattern.compile(emailRegex);
-        Matcher matcher = pattern.matcher(email);
+        Matcher matcher = pattern.matcher(emailValue);
 
-        if(matcher.matches() && password.length() >= 6 && passwordConfirm.equals(password)){
-            mAuth.createUserWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
-                @Override
-                public void onComplete(@NonNull Task<AuthResult> task) {
-                    final Intent intent;
-                    if(task.isSuccessful()){
-                        userRepository.createUser();
-                        intent = new Intent(getApplicationContext(), ProfileActivity.class);
-                        startActivity(intent);
-                        finish();
-                    }
-                    else{
-                        Toast toast = Toast.makeText(getApplicationContext(), "Данный email уже используется", Toast.LENGTH_SHORT);
-                        toast.show();
-                    }
-                }
-            });
+        if (emailValue.isEmpty()) {
+            this.email.setError("Поле Email не может быть пустым");
+            this.email.requestFocus();
+            return;
         }
+
+        if (!matcher.matches()) {
+            this.email.setError("Некорректный формат Email");
+            this.email.requestFocus();
+            return;
+        }
+
+        if (passwordValue.isEmpty()) {
+            this.password.setError("Поле Пароль не может быть пустым");
+            this.password.requestFocus();
+            return;
+        }
+
+        if (passwordValue.length() < 6) {
+            this.password.setError("Пароль должен содержать не менее 6 символов");
+            this.password.requestFocus();
+            return;
+        }
+
+        if (!passwordConfirmValue.equals(passwordValue)) {
+            this.passwordConfirm.setError("Пароли не совпадают");
+            this.passwordConfirm.requestFocus();
+            return;
+        }
+
+        mAuth.createUserWithEmailAndPassword(emailValue, passwordConfirmValue).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                if (task.isSuccessful()) {
+                    userRepository.createUser();
+                    Intent intent = new Intent(getApplicationContext(), ProfileActivity.class);
+                    startActivity(intent);
+                    finish();
+                } else {
+                    email.setError("Данный email уже используется");
+                    email.requestFocus();
+                }
+            }
+        });
     }
+
 }

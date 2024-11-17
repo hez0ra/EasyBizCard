@@ -14,13 +14,13 @@ public class BusinessCard implements Serializable {
     public String site;
     public String imageUrl;
     public Map<String, String> links = new HashMap<>();
+    public int sample;
     public Map<String, String> colors = new HashMap<>();
-
     private long views;
     private long favorites;
 
     // Конструктор
-    public BusinessCard(String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links) {
+    public BusinessCard(String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links, int sample) {
         this.userId = userId;
         this.title = title;
         this.description = description;
@@ -29,6 +29,7 @@ public class BusinessCard implements Serializable {
         this.site = site;
         this.imageUrl = imageUrl;
         this.links = links;
+        this.sample = sample;
         this.views = 0;
         this.favorites = 0;
         this.colors.put("background", "#FFFFFF"); // Белый фон
@@ -36,8 +37,8 @@ public class BusinessCard implements Serializable {
     }
 
     // Конструктор
-    public BusinessCard(String cardId, String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links, Map<String, String> colors, long views, long favorites) {
-        this(userId, title, description, number, email, site, imageUrl, links);
+    public BusinessCard(String cardId, String userId, String title, String description, String number, String email, String site, String imageUrl, Map<String, String> links, int sample, Map<String, String> colors, long views, long favorites) {
+        this(userId, title, description, number, email, site, imageUrl, links, sample);
         this.cardId = cardId;
         this.colors = colors;
         this.views = views;
@@ -151,5 +152,12 @@ public class BusinessCard implements Serializable {
 
     public void setTextColor(String color){
         this.colors.put("text", color);
+    }
+    public int getSample() {
+        return sample;
+    }
+
+    public void setSample(int sample) {
+        this.sample = sample;
     }
 }

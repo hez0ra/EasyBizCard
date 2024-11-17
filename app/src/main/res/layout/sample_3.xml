@@ -70,7 +70,7 @@
                 android:textColor="@color/text" />
 
             <TextView
-                android:id="@+id/sample_3_phone"
+                android:id="@+id/sample_3_number"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="+375-00-000-00-00"
@@ -102,6 +102,7 @@
                 android:background="@color/black" />
 
             <TextView
+                android:id="@+id/sample_3_links_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Социальные сети:"
@@ -169,6 +170,7 @@
             </HorizontalScrollView>
 
             <View
+                android:id="@+id/sample_3_links_bar"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"
                 android:layout_marginVertical="8dp"

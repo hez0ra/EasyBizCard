@@ -20,9 +20,13 @@ import android.widget.ImageView;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import androidx.activity.EdgeToEdge;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 
 
 import com.bumptech.glide.Glide;
@@ -39,7 +43,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import de.hdodenhof.circleimageview.CircleImageView;
 import volosyuk.easybizcard.models.BusinessCard;
 import volosyuk.easybizcard.utils.BusinessCardRepository;
 import volosyuk.easybizcard.utils.QRCodeGenerator;
@@ -54,49 +57,120 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
     private boolean isMarked = false;
 
 
-    private CircleImageView imageView;
-    private TextView title, description, phone, email, site;
-    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report, analytics, delete, edit;
+    private View bar;
+    private ImageView imageView;
+    private TextView title, description, number, email, site, titleSocial;
+    private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report, analytics, delete, edit, menu;
     private BusinessCardRepository businessCardRepository;
     private FirebaseAuth mAuth;
     private BusinessCard card;
     private ReportRepository reportRepository;
     private ScrollView mainLayout;
+    private int sample;
+    private boolean isMenuOpen = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.sample_1);  // Ваш XML для подробной визитки
+        EdgeToEdge.enable(this);
+        card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
+        sample = card.getSample();
+        switch (sample){
+            case 1:
+                setContentView(R.layout.sample_1);
+                ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.sample_1), (v, insets) -> {
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                    return insets;
+                });
+                imageView = findViewById(R.id.sample_1_image);
+                title = findViewById(R.id.sample_1_title);
+                description = findViewById(R.id.sample_1_description);
+                number = findViewById(R.id.sample_1_number);
+                email = findViewById(R.id.sample_1_email);
+                site = findViewById(R.id.sample_1_site);
+                qrCodeBtn = findViewById(R.id.sample_1_share);
+                whatsapp = findViewById(R.id.sample_1_links_whatsapp);
+                viber = findViewById(R.id.sample_1_links_viber);
+                telegram = findViewById(R.id.sample_1_links_telegram);
+                facebook = findViewById(R.id.sample_1_links_facebook);
+                vkontakte = findViewById(R.id.sample_1_links_vkontakte);
+                instagram = findViewById(R.id.sample_1_links_instagram);
+                bookmark = findViewById(R.id.sample_1_bookmark);
+                report = findViewById(R.id.sample_1_report);
+                mainLayout = findViewById(R.id.sample_1);
+                titleSocial = findViewById(R.id.sample_1_links_title);
+                bar = findViewById(R.id.sample_1_links_bar);
 
-        userRepository = new UserRepository(FirebaseFirestore.getInstance(), FirebaseAuth.getInstance());
+                break;
 
-        // Инициализация компонентов
-        imageView = findViewById(R.id.sample_2_edit_image);
-        title = findViewById(R.id.sample_2_edit_title);
-        description = findViewById(R.id.sample_2_edit_description);
-        phone = findViewById(R.id.sample_2_edit_number);
-        email = findViewById(R.id.sample_2_edit_email);
-        site = findViewById(R.id.sample_2_edit_site);
-        qrCodeBtn = findViewById(R.id.sample_2_share);
-        whatsapp = findViewById(R.id.sample_2_edit_links_whatsapp);
-        viber = findViewById(R.id.sample_2_edit_links_viber);
-        telegram = findViewById(R.id.sample_2_edit_links_telegram);
-        facebook = findViewById(R.id.sample_2_edit_links_facebook);
-        vkontakte = findViewById(R.id.sample_2_edit_links_vkontakte);
-        instagram = findViewById(R.id.sample_2_edit_links_instagram);
-        bookmark = findViewById(R.id.sample_2_bookmark);
-        report = findViewById(R.id.sample_2_report);
-        analytics = findViewById(R.id.sample_1_analytics);
-        delete = findViewById(R.id.sample_1_delete);
-        edit = findViewById(R.id.sample_1_edit_btn);
-        mainLayout = findViewById(R.id.sample_2_edit);
+            case 2:
+                setContentView(R.layout.sample_2);
+                ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.sample_2), (v, insets) -> {
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                    return insets;
+                });
+                imageView = findViewById(R.id.sample_2_image);
+                title = findViewById(R.id.sample_2_title);
+                description = findViewById(R.id.sample_2_description);
+                number = findViewById(R.id.sample_2_number);
+                email = findViewById(R.id.sample_2_email);
+                site = findViewById(R.id.sample_2_site);
+                qrCodeBtn = findViewById(R.id.sample_2_share);
+                whatsapp = findViewById(R.id.sample_2_links_whatsapp);
+                viber = findViewById(R.id.sample_2_links_viber);
+                telegram = findViewById(R.id.sample_2_links_telegram);
+                facebook = findViewById(R.id.sample_2_links_facebook);
+                vkontakte = findViewById(R.id.sample_2_links_vkontakte);
+                instagram = findViewById(R.id.sample_2_links_instagram);
+                bookmark = findViewById(R.id.sample_2_bookmark);
+                report = findViewById(R.id.sample_2_report);
+                menu = findViewById(R.id.sample_2_menu);
+                mainLayout = findViewById(R.id.sample_2);
+                titleSocial = findViewById(R.id.sample_2_links_title);
+                bar = findViewById(R.id.sample_2_links_bar);
 
+                break;
+
+            case 3:
+                setContentView(R.layout.sample_3);
+                ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.sample_3), (v, insets) -> {
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                    return insets;
+                });
+                imageView = findViewById(R.id.sample_3_image);
+                title = findViewById(R.id.sample_3_title);
+                description = findViewById(R.id.sample_3_description);
+                number = findViewById(R.id.sample_3_number);
+                email = findViewById(R.id.sample_3_email);
+                site = findViewById(R.id.sample_3_site);
+                qrCodeBtn = findViewById(R.id.sample_3_share);
+                whatsapp = findViewById(R.id.sample_3_links_whatsapp);
+                viber = findViewById(R.id.sample_3_links_viber);
+                telegram = findViewById(R.id.sample_3_links_telegram);
+                facebook = findViewById(R.id.sample_3_links_facebook);
+                vkontakte = findViewById(R.id.sample_3_links_vkontakte);
+                instagram = findViewById(R.id.sample_3_links_instagram);
+                bookmark = findViewById(R.id.sample_3_bookmark);
+                report = findViewById(R.id.sample_3_report);
+                mainLayout = findViewById(R.id.sample_3);
+                titleSocial = findViewById(R.id.sample_3_links_title);
+                bar = findViewById(R.id.sample_3_links_bar);
+
+                break;
+            default:
+                break;
+        }
         // Получаем данные о визитке, переданные через Intent
         mAuth = FirebaseAuth.getInstance();
-        businessCardRepository = new BusinessCardRepository(FirebaseFirestore.getInstance());
+        FirebaseFirestore db =  FirebaseFirestore.getInstance();
+        businessCardRepository = new BusinessCardRepository(db);
         reportRepository = new ReportRepository();
+        userRepository = new UserRepository(db, mAuth);
 
-        card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
+
 
         // Заполняем данными
         if (card != null) {
@@ -106,7 +180,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
 
             title.setText(card.getTitle());
             description.setText(card.getDescription());
-            phone.setText(card.getNumber());
+            number.setText(card.getNumber());
             email.setText(card.getEmail());
             site.setText(card.getSite());
             setTextColor(mainLayout, Color.parseColor(card.getTextColor()));
@@ -157,12 +231,40 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         });
 
         userRepository.isActiveUserAdmin().thenAccept(result -> {
+            if (sample == 2){
+                menu.setOnClickListener(v -> {
+                    isMenuOpen = !isMenuOpen;
+                    toggleMenu(isMenuOpen, result);
+                });
+
+            }
+
             if(mAuth.getCurrentUser() != null){
 
                 if(mAuth.getCurrentUser().getUid().equals(card.getUserId()) || result){
-                    analytics.setVisibility(View.VISIBLE);
-                    delete.setVisibility(View.VISIBLE);
-                    edit.setVisibility(View.VISIBLE);
+                    switch (sample){
+                        case 1:
+                            analytics = findViewById(R.id.sample_1_analytics);
+                            delete = findViewById(R.id.sample_1_delete);
+                            edit = findViewById(R.id.sample_1_edit_btn);
+                            analytics.setVisibility(View.VISIBLE);
+                            delete.setVisibility(View.VISIBLE);
+                            edit.setVisibility(View.VISIBLE);
+                            break;
+                        case 2:
+                            analytics = findViewById(R.id.sample_2_analytics);
+                            delete = findViewById(R.id.sample_2_delete);
+                            edit = findViewById(R.id.sample_2_edit_btn);
+                            break;
+                        case 3:
+                            analytics = findViewById(R.id.sample_3_analytics);
+                            delete = findViewById(R.id.sample_3_delete);
+                            edit = findViewById(R.id.sample_3_edit_btn);
+                            analytics.setVisibility(View.VISIBLE);
+                            delete.setVisibility(View.VISIBLE);
+                            edit.setVisibility(View.VISIBLE);
+                            break;
+                    }
 
                     analytics.setOnClickListener(v -> {
                         showStatsDialog(card.getViews(), card.getFavorites());
@@ -187,9 +289,9 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
                     edit.setOnClickListener(v -> {
                         Intent intent = new Intent(this, EditActivity.class);
                         intent.putExtra(EditActivity.EXTRA_CARD, card);
+                        intent.putExtra(EditActivity.EXTRA_LAYOUT, sample);
                         editCardLauncher.launch(intent);
                     });
-
 
                 }
 
@@ -246,10 +348,8 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         setupLink(card.getInstagram(), instagram);
         // Скрываем весь блок социальных сетей, если все ссылки пусты
         if (card.getWhatsApp() == null && card.getViber() == null && card.getTelegram() == null && card.getFacebook() == null && card.getVk() == null && card.getInstagram() == null) {
-            TextView title = findViewById(R.id.sample_2_links_title);
-            title.setVisibility(View.GONE);
-            View splitBar = findViewById(R.id.sample_2_links_bar);
-            splitBar.setVisibility(View.GONE);
+            titleSocial.setVisibility(View.GONE);
+            bar.setVisibility(View.GONE);
         }
     }
 
@@ -315,7 +415,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
     }
 
     private void showReportDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
         LayoutInflater inflater = getLayoutInflater();
         View dialogView = inflater.inflate(R.layout.dialog_report, null);
         builder.setView(dialogView);
@@ -355,7 +455,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         card = updatedCard; // Обновляем текущую визитку
         title.setText(card.getTitle());
         description.setText(card.getDescription());
-        phone.setText(card.getNumber());
+        number.setText(card.getNumber());
         email.setText(card.getEmail());
         site.setText(card.getSite());
         setTextColor(mainLayout, Color.parseColor(card.getTextColor()));
@@ -377,6 +477,45 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
                 setTextColor((ViewGroup) child, color);
             }
         }
+    }
+
+    private void toggleMenu(boolean isMenuOpen, boolean isAdmin) {
+        float startAlpha = isMenuOpen ? 1f : 0f;
+        float endAlpha = isMenuOpen ? 0f : 1f;
+
+        float startTranslationY = isMenuOpen ? 100 : 0; // Начальная позиция по Y
+        float endTranslationY = isMenuOpen ? 0 : 100; // Конечная позиция по Y
+
+        long animationDuration = 300; // Длительность анимации в миллисекундах
+
+        // Анимация для каждой кнопки
+        animateButton(qrCodeBtn, startAlpha, endAlpha, startTranslationY, endTranslationY, animationDuration);
+        animateButton(bookmark, startAlpha, endAlpha, startTranslationY, endTranslationY, animationDuration);
+        animateButton(report, startAlpha, endAlpha, startTranslationY, endTranslationY, animationDuration);
+
+        if (isAdmin){
+            animateButton(analytics, startAlpha, endAlpha, startTranslationY, endTranslationY, animationDuration);
+            animateButton(edit, startAlpha, endAlpha, startTranslationY, endTranslationY, animationDuration);
+            animateButton(delete, startAlpha, endAlpha, startTranslationY, endTranslationY, animationDuration);
+        }
+    }
+
+    private void animateButton(View button, float startAlpha, float endAlpha, float startTranslationY, float endTranslationY, long duration) {
+        button.setVisibility(View.VISIBLE); // Убедимся, что кнопка видна
+
+        button.setAlpha(startAlpha);
+        button.setTranslationY(startTranslationY);
+
+        button.animate()
+                .alpha(endAlpha) // Прозрачность
+                .translationY(endTranslationY) // Позиция
+                .setDuration(duration)
+                .withEndAction(() -> {
+                    if (endAlpha == 0f) {
+                        button.setVisibility(View.GONE); // Скрыть, если конечная альфа = 0
+                    }
+                })
+                .start();
     }
 
 }

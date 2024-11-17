@@ -21,8 +21,8 @@ import volosyuk.easybizcard.utils.UserRepository;
 
 public class AddActivity extends AppCompatActivity {
 
-    ImageButton toProfile, toMyCards, toScan, toBookmarks, toAdminPanel;
-    Button sample1, sample2;
+    ImageButton toProfile, toMyCards, toScan, toBookmarks;
+    Button sample1, sample2, sample3;
     BusinessCardRepository businessCardRepository;
     FirebaseAuth mAuth;
     UserRepository userRepository;
@@ -46,9 +46,9 @@ public class AddActivity extends AppCompatActivity {
         toMyCards = findViewById(R.id.add_to_my_cards);
         toScan = findViewById(R.id.add_to_scan);
         toBookmarks = findViewById(R.id.add_to_my_bookmarks);
-        toAdminPanel = findViewById(R.id.add_to_admin_panel);
         sample1 = findViewById(R.id.add_sample_1);
         sample2 = findViewById(R.id.add_sample_2);
+        sample3 = findViewById(R.id.add_sample_3);
 
 
         sample1.setOnClickListener(v ->{
@@ -61,41 +61,46 @@ public class AddActivity extends AppCompatActivity {
             Intent intent = new Intent(this, EditActivity.class);
             intent.putExtra(EditActivity.EXTRA_LAYOUT, 2);
             startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
+        });
+
+        sample3.setOnClickListener(v ->{
+            Intent intent = new Intent(this, EditActivity.class);
+            intent.putExtra(EditActivity.EXTRA_LAYOUT, 3);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
         });
 
         toProfile.setOnClickListener(v ->{
             Intent intent = new Intent(this, ProfileActivity.class);
             startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
         });
 
         toMyCards.setOnClickListener(v ->{
             Intent intent = new Intent(this, MyCardsActivity.class);
             intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, false);
             startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
         });
 
         toScan.setOnClickListener(v ->{
             Intent intent = new Intent(this, QRScannerActivity.class);
             startActivityForResult(intent, 365);
+            overridePendingTransition(0, 0);
         });
 
         toBookmarks.setOnClickListener(v -> {
             Intent intent = new Intent(this, MyCardsActivity.class);
             intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, true);
             startActivity(intent);
+            overridePendingTransition(0, 0);
+            finish();
         });
-
-        if(mAuth.getCurrentUser() != null){
-            userRepository.isActiveUserAdmin().thenAccept(result -> {
-                if(result){
-                    toAdminPanel.setVisibility(View.VISIBLE);
-                    toAdminPanel.setOnClickListener(v -> {
-                        Intent intent = new Intent(this, AdminPanelActivity.class);
-                        startActivity(intent);
-                    });
-                }
-            });
-        }
     }
 
     @Override
@@ -107,6 +112,7 @@ public class AddActivity extends AppCompatActivity {
             businessCardRepository.searchBusinessCardById(qrCode).thenAccept(card ->{
                 Intent intent = new Intent(this, BusinessCardDetailActivity.class);
                 intent.putExtra(BusinessCardDetailActivity.EXTRA_CARD, card);
+                overridePendingTransition(0, 0);
                 startActivity(intent);
             });
         }

@@ -37,7 +37,7 @@
             android:id="@+id/sample_2_edit_image"
             android:layout_width="160dp"
             android:layout_height="160dp"
-            android:src="@drawable/minilogo"
+            android:src="@drawable/placeholder_image"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
@@ -112,7 +112,7 @@
             android:layout_marginBottom="16dp"
             android:orientation="vertical"
             android:padding="8dp"
-            app:layout_constraintBottom_toTopOf="@+id/sample_2_edit_save"
+            app:layout_constraintBottom_toTopOf="@+id/sample_3_edit_save"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
@@ -208,7 +208,7 @@
         </LinearLayout>
 
         <Button
-            android:id="@+id/sample_2_edit_save"
+            android:id="@+id/sample_3_edit_save"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"

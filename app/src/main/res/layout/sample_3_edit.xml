@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:id="@+id/sample_3_edit_edit"
+    android:id="@+id/sample_3_edit"
     android:fillViewport="true"
     android:background="@color/background">
 
@@ -11,24 +11,47 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
+        <ImageButton
+            android:id="@+id/sample_3_edit_background"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="8dp"
+            android:elevation="1dp"
+            android:background="@drawable/background_white_rounded"
+            android:src="@drawable/icon_color_lens"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/sample_3_edit_background_format_text"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:elevation="1dp"
+            android:background="@drawable/background_white_rounded"
+            android:src="@drawable/icon_format_color_text"
+            app:layout_constraintEnd_toEndOf="@+id/sample_3_edit_background"
+            app:layout_constraintTop_toBottomOf="@+id/sample_3_edit_background" />
+
         <!-- Header Image -->
         <ImageView
             android:id="@+id/sample_3_edit_image"
             android:layout_width="0dp"
             android:layout_height="200dp"
             android:scaleType="centerCrop"
-            android:src="@drawable/minilogo"
+            android:src="@drawable/placeholder_image"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />
 
         <!-- Title -->
-        <TextView
+        <EditText
             android:id="@+id/sample_3_edit_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Заголовок"
+            android:hint="Заголовок"
             android:textColor="@color/text"
             android:textSize="22sp"
             app:layout_constraintTop_toBottomOf="@id/sample_3_edit_image"
@@ -36,7 +59,7 @@
             app:layout_constraintEnd_toEndOf="parent" />
 
         <!-- Description -->
-        <TextView
+        <EditText
             android:id="@+id/sample_3_edit_description"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -44,7 +67,7 @@
             android:layout_marginStart="8dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="8dp"
-            android:text="Описание текста здесь..."
+            android:hint="Описание текста здесь..."
             android:textColor="@color/text"
             app:layout_constraintBottom_toTopOf="@+id/template_3_links"
             app:layout_constraintEnd_toEndOf="parent"
@@ -57,9 +80,10 @@
             android:id="@+id/template_3_links"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
             android:orientation="vertical"
             android:padding="8dp"
-            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintBottom_toTopOf="@+id/sample_3_edit_save"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent">
 
@@ -69,11 +93,11 @@
                 android:text="Телефон:"
                 android:textColor="@color/text" />
 
-            <TextView
-                android:id="@+id/sample_3_edit_phone"
+            <EditText
+                android:id="@+id/sample_3_edit_number"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="+375-00-000-00-00"
+                android:hint="+375-00-000-00-00"
                 android:textColor="@color/text" />
 
             <View
@@ -88,11 +112,11 @@
                 android:text="Email:"
                 android:textColor="@color/text" />
 
-            <TextView
+            <EditText
                 android:id="@+id/sample_3_edit_email"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="example@gmail.com"
+                android:hint="example@gmail.com"
                 android:textColor="@color/text" />
 
             <View
@@ -162,7 +186,7 @@
                         android:layout_height="48dp"
                         android:layout_marginEnd="8dp"
                         android:background="@android:color/transparent"
-                        android:src="@drawable/icon_instagram"/>
+                        android:src="@drawable/icon_instagram" />
 
                 </LinearLayout>
 
@@ -180,14 +204,25 @@
                 android:text="Сайт:"
                 android:textColor="@color/text" />
 
-            <TextView
+            <EditText
                 android:id="@+id/sample_3_edit_site"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="https://example.com"
+                android:hint="https://example.com"
                 android:textColor="#0000FF" />
 
         </LinearLayout>
+
+        <Button
+            android:id="@+id/sample_3_edit_save"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:backgroundTint="@color/main"
+            android:text="Создать"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
