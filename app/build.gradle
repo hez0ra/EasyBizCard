@@ -50,6 +50,7 @@ dependencies {
     implementation libs.zxing.android.embedded // qr
     implementation libs.mpandroidchart // диаграммы
     implementation libs.colorpicker // выбор цвета
+    implementation libs.ucrop // обработка фотографий
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

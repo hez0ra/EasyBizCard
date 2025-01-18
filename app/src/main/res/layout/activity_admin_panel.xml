@@ -43,14 +43,14 @@
             android:padding="10dp"
             android:src="@drawable/icon_report_black" />
 
-        <ImageButton
-            android:id="@+id/admin_panel_users"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@android:color/transparent"
-            android:padding="10dp"
-            android:src="@drawable/icon_user" />
+<!--        <ImageButton-->
+<!--            android:id="@+id/admin_panel_users"-->
+<!--            android:layout_width="0dp"-->
+<!--            android:layout_height="wrap_content"-->
+<!--            android:layout_weight="1"-->
+<!--            android:background="@android:color/transparent"-->
+<!--            android:padding="10dp"-->
+<!--            android:src="@drawable/icon_user" />-->
 
     </LinearLayout>
 

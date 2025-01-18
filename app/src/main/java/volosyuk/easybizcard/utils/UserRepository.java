@@ -1,9 +1,12 @@
 package volosyuk.easybizcard.utils;
 
+import android.content.Intent;
 import android.util.Log;
 
+import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -13,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import volosyuk.easybizcard.ProfileActivity;
 import volosyuk.easybizcard.models.BusinessCard;
 import volosyuk.easybizcard.models.User;
 
@@ -60,7 +64,7 @@ public class UserRepository {
 
             // Создаем новый документ пользователя в коллекции "users"
             DocumentReference userRef = db.collection("users").document(userId);
-            userRef.set(new User(userId, email, null))
+            userRef.set(new User(userId, email, null, false))
                     .addOnSuccessListener(aVoid -> {
                         Log.d("EasyBizCard", "Пользователь успешно создан");
                         future.complete(null);
@@ -239,6 +243,28 @@ public class UserRepository {
                 .addOnFailureListener(future::completeExceptionally);
         return future;
     }
+
+    public CompletableFuture<Boolean> isUserExistByEmail(String email) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        db.collection("users")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    boolean userExists = false;
+                    for (DocumentSnapshot documentSnapshot : queryDocumentSnapshots.getDocuments()) {
+                        User user = documentSnapshot.toObject(User.class);
+                        if (user != null && user.getEmail().equals(email)) {
+                            userExists = true;
+                            break;
+                        }
+                    }
+                    future.complete(userExists); // Здесь возвращаем false, если пользователь не найден
+                })
+                .addOnFailureListener(future::completeExceptionally);
+        return future;
+    }
+
+
+
 }
 
 

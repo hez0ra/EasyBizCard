@@ -3,15 +3,19 @@ package volosyuk.easybizcard.models;
 import java.util.List;
 
 public class User {
-    private String userId;
-    private String email;
-    private List<String> bookmarkedCards;
-    private boolean admin;
+    public String userId;
+    public String email;
+    public List<String> bookmarkedCards;
+    public boolean admin;
+
+    public User(){
+    }
 
     public User(String userId, String email, List<String> bookmarkedCards) {
         this.userId = userId;
         this.email = email;
         this.bookmarkedCards = bookmarkedCards;
+        this.admin = false;
     }
 
     public User(String userId, String email, List<String> bookmarkedCards, boolean admin) {

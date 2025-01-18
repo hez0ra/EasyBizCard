@@ -3,6 +3,9 @@
     <style name="CustomAlertDialog" parent="Theme.AppCompat.Light.Dialog.Alert">
         <item name="colorAccent">@color/main</item> <!-- Цвет кнопки -->
         <item name="android:background">@color/background</item> <!-- Цвет фона -->
+        <item name="android:textColor">@color/text</item> <!-- Цвет title -->
+        <item name="android:textColorPrimary">@color/white</item> <!-- Цвет текста на кнопках "положительных" действий -->
+        <item name="android:textColorSecondary">@color/white</item> <!-- Цвет текста на кнопках "отрицательных" действий -->
     </style>
 
 </resources>

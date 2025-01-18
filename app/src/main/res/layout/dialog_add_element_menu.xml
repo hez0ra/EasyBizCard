@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/background"
+    android:padding="16dp">
+
+    <Button
+        android:id="@+id/btn_add_image"
+        android:textColor="@color/main"
+        android:background="@android:color/transparent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Изображение" />
+
+    <Button
+        android:id="@+id/btn_add_text"
+        android:textColor="@color/main"
+        android:background="@android:color/transparent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Текст" />
+
+    <Button
+        android:id="@+id/btn_add_phone"
+        android:textColor="@color/main"
+        android:background="@android:color/transparent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Номер телефона" />
+
+    <Button
+        android:id="@+id/btn_add_email"
+        android:textColor="@color/main"
+        android:background="@android:color/transparent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Электронная почта" />
+
+    <Button
+        android:id="@+id/btn_add_link"
+        android:textColor="@color/main"
+        android:background="@android:color/transparent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Ссылка" />
+
+</LinearLayout>

@@ -51,21 +51,31 @@
 
     <EditText
         android:id="@+id/login_password"
-        android:inputType="textPassword"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="32dp"
+        android:layout_marginBottom="40dp"
+        android:backgroundTint="@color/second"
+        android:drawableStart="@drawable/icon_password"
+        android:drawablePadding="10dp"
         android:hint="Пароль"
+        android:inputType="textPassword"
         android:padding="12dp"
         android:textColor="@color/text"
         android:textColorHint="@color/second"
-        android:drawableStart="@drawable/icon_password"
-        android:drawablePadding="10dp"
-        android:backgroundTint="@color/second"
         app:layout_constraintBottom_toTopOf="@+id/login_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintWidth_percent="0.8" />
+
+    <TextView
+        android:id="@+id/login_reset_password"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Забыли пароль?"
+        android:textColor="@color/text"
+        app:layout_constraintEnd_toEndOf="@+id/login_password"
+        app:layout_constraintTop_toBottomOf="@+id/login_password" />
 
     <Button
         android:id="@+id/login_button"

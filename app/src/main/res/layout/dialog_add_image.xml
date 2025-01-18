@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:gravity="center">
+
+    <!-- Картинка для камеры -->
+    <ImageView
+        android:id="@+id/camera_image"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginBottom="10dp"
+        android:src="@drawable/icon_camera"
+        android:contentDescription="Сделать новое фото" />
+
+    <!-- Подпись для камеры -->
+    <TextView
+        android:id="@+id/camera_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Камера"
+        android:textSize="16sp"
+        android:textColor="#000000" />
+
+    <!-- Разделитель -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginVertical="20dp"
+        android:background="#d3d3d3"/>
+
+    <!-- Картинка для галереи -->
+    <ImageView
+        android:id="@+id/gallery_image"
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:layout_marginBottom="10dp"
+        android:src="@drawable/icon_gallery"
+        android:contentDescription="Выбрать фото из галереи" />
+
+    <!-- Подпись для галереи -->
+    <TextView
+        android:id="@+id/gallery_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Галерея"
+        android:textSize="16sp"
+        android:textColor="#000000" />
+</LinearLayout>

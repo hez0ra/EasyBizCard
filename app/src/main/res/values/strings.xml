@@ -3,6 +3,22 @@
     <string name="user_image">EasyBizCard</string>
     <string name="image_description">EasyBizCard</string>
     <string name="card_image_desc">Business card image</string>
+    <string name="default_web_client_id">325730203077-1mokps6bporivg1mo0n6ajmin9p0gkds.apps.googleusercontent.com</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="hello_blank_fragment">Hello blank fragment</string>
+    <string-array name="font_families">
+        <item>sans-serif</item>
+        <item>sans-serif-light</item>
+        <item>sans-serif-thin</item>
+        <item>sans-serif-condensed</item>
+        <item>sans-serif-medium</item>
+        <item>sans-serif-black</item>
+        <item>sans-serif-condensed-light</item>
+        <item>sans-serif-condensed-medium</item>
+        <item>serif</item>
+        <item>monospace</item>
+        <item>casual</item>
+        <item>cursive</item>
+        <item>sans-serif-smallcaps</item>
+    </string-array>
 </resources>

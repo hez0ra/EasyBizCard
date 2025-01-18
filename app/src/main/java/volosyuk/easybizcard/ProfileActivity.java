@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -107,11 +108,22 @@ public class ProfileActivity extends AppCompatActivity {
 
         // Устанавливаем слушатель нажатия на аватар для выбора изображения
         avatar.setOnClickListener(v -> {
-            if (ContextCompat.checkSelfPermission(ProfileActivity.this,
-                    Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                openGallery();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Проверяем наличие нового разрешения для изображений
+                if (ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED) {
+                    openGallery();
+                } else {
+                    requestStoragePermission();
+                }
             } else {
-                requestStoragePermission();
+                // Для Android 12 и ниже проверяем старое разрешение
+                if (ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                    openGallery();
+                } else {
+                    requestStoragePermission();
+                }
             }
         });
 
@@ -239,16 +251,40 @@ public class ProfileActivity extends AppCompatActivity {
         }
     }
 
+    // Проверка и запрос разрешений
     private void requestStoragePermission() {
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_CODE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.READ_MEDIA_IMAGES // Для изображений
+            }, STORAGE_PERMISSION_CODE);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+            }, STORAGE_PERMISSION_CODE);
+        } else {
+            openGallery(); // На старых версиях разрешения задаются в манифесте
+        }
     }
 
+
+    // Обработка результата
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
         if (requestCode == STORAGE_PERMISSION_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openGallery();
+            boolean isPermissionGranted = true;
+
+            // Проверка всех запрошенных разрешений
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    isPermissionGranted = false;
+                    break;
+                }
+            }
+
+            if (isPermissionGranted) {
+                openGallery(); // Разрешение получено
             } else {
                 Toast.makeText(this, "Нет доступа к галерее", Toast.LENGTH_SHORT).show();
             }

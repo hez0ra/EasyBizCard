@@ -1,0 +1,39 @@
+@startuml
+actor "Пользователь" as User
+actor "Администратор" as Admin
+
+rectangle EasyBizCard {
+    (Вход в систему) as UC1
+    (Регистрация) as UC2
+    (Сброс пароля) as UC3
+    (Просмотр визиток) as UC4
+    (Редактирование визитки) as UC5
+    (Добавление визитки) as UC6
+    (Просмотр статистики визитки) as UC7
+    (Сканирование QR-кода) as UC8
+    (Добавление в избранное) as UC9
+    (Отправка жалобы на визитку) as UC10
+
+    (Управление визитками) as UC11
+    (Управление жалобами) as UC12
+    (Удаление визитки) as UC13
+    (Просмотр статистики) as UC14
+}
+
+User --> UC1
+User --> UC2
+User --> UC3
+User --> UC4
+User --> UC5
+User --> UC6
+User --> UC7
+User --> UC8
+User --> UC9
+User --> UC10
+
+Admin --> UC11
+Admin --> UC12
+Admin --> UC13
+Admin --> UC14
+
+@enduml

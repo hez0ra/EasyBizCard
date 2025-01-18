@@ -22,7 +22,7 @@ import volosyuk.easybizcard.utils.UserRepository;
 public class AddActivity extends AppCompatActivity {
 
     ImageButton toProfile, toMyCards, toScan, toBookmarks;
-    Button sample1, sample2, sample3;
+    Button sample1, sample2, sample3, sample4;
     BusinessCardRepository businessCardRepository;
     FirebaseAuth mAuth;
     UserRepository userRepository;
@@ -49,6 +49,7 @@ public class AddActivity extends AppCompatActivity {
         sample1 = findViewById(R.id.add_sample_1);
         sample2 = findViewById(R.id.add_sample_2);
         sample3 = findViewById(R.id.add_sample_3);
+        sample4 = findViewById(R.id.add_sample_4);
 
 
         sample1.setOnClickListener(v ->{
@@ -62,7 +63,6 @@ public class AddActivity extends AppCompatActivity {
             intent.putExtra(EditActivity.EXTRA_LAYOUT, 2);
             startActivity(intent);
             overridePendingTransition(0, 0);
-            finish();
         });
 
         sample3.setOnClickListener(v ->{
@@ -70,7 +70,12 @@ public class AddActivity extends AppCompatActivity {
             intent.putExtra(EditActivity.EXTRA_LAYOUT, 3);
             startActivity(intent);
             overridePendingTransition(0, 0);
-            finish();
+        });
+
+        sample4.setOnClickListener(v ->{
+            Intent intent = new Intent(this, TemplateEditorActivity.class);
+            startActivity(intent);
+            overridePendingTransition(0, 0);
         });
 
         toProfile.setOnClickListener(v ->{

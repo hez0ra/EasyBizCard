@@ -10,6 +10,7 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
@@ -175,13 +176,25 @@ public class EditActivity extends AppCompatActivity {
         progressDialog.setCancelable(false);  // Запрещаем отмену загрузки
 
         image.setOnClickListener(view -> {
-            if (ContextCompat.checkSelfPermission(EditActivity.this,
-                    Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-                openGallery();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                // Проверяем наличие нового разрешения для изображений
+                if (ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.READ_MEDIA_IMAGES) == PackageManager.PERMISSION_GRANTED) {
+                    openGallery();
+                } else {
+                    requestStoragePermission();
+                }
             } else {
-                requestStoragePermission();
+                // Для Android 12 и ниже проверяем старое разрешение
+                if (ContextCompat.checkSelfPermission(this,
+                        Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+                    openGallery();
+                } else {
+                    requestStoragePermission();
+                }
             }
         });
+
 
         save.setOnClickListener(view -> {
             if (validateInputs()) {
@@ -207,9 +220,9 @@ public class EditActivity extends AppCompatActivity {
         backgroundColorBtn.setOnClickListener(v -> {
             ColorPickerDialogBuilder
                     .with(this)
-                    .setTitle("Choose color")
+                    .setTitle("Цвет текста")
                     .initialColor(backgroundColor)
-                    .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
+                    .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
                     .density(12)
                     .setOnColorSelectedListener(new OnColorSelectedListener() {
                         @Override
@@ -239,7 +252,7 @@ public class EditActivity extends AppCompatActivity {
                     .with(this)
                     .setTitle("Choose color")
                     .initialColor(textColor)
-                    .wheelType(ColorPickerView.WHEEL_TYPE.FLOWER)
+                    .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
                     .density(12)
                     .setOnColorSelectedListener(new OnColorSelectedListener() {
                         @Override
@@ -344,16 +357,40 @@ public class EditActivity extends AppCompatActivity {
         }
     }
 
+    // Проверка и запрос разрешений
     private void requestStoragePermission() {
-        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION_CODE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.READ_MEDIA_IMAGES // Для изображений
+            }, STORAGE_PERMISSION_CODE);
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ActivityCompat.requestPermissions(this, new String[]{
+                    Manifest.permission.READ_EXTERNAL_STORAGE
+            }, STORAGE_PERMISSION_CODE);
+        } else {
+            openGallery(); // На старых версиях разрешения задаются в манифесте
+        }
     }
 
+
+    // Обработка результата
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+
         if (requestCode == STORAGE_PERMISSION_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                openGallery();
+            boolean isPermissionGranted = true;
+
+            // Проверка всех запрошенных разрешений
+            for (int result : grantResults) {
+                if (result != PackageManager.PERMISSION_GRANTED) {
+                    isPermissionGranted = false;
+                    break;
+                }
+            }
+
+            if (isPermissionGranted) {
+                openGallery(); // Разрешение получено
             } else {
                 Toast.makeText(this, "Нет доступа к галерее", Toast.LENGTH_SHORT).show();
             }

@@ -54,6 +54,20 @@
         app:layout_constraintStart_toStartOf="@+id/add_sample_1"
         app:layout_constraintTop_toBottomOf="@+id/add_sample_1" />
 
+    <Button
+        android:id="@+id/add_sample_4"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="140dp"
+        android:backgroundTint="@color/main"
+        android:text="Редактор шаблонов"
+        android:textColor="@color/white"
+        app:layout_constraintBottom_toTopOf="@+id/linearLayout"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/add_sample_3"
+        app:layout_constraintVertical_bias="0.05" />
+
     <LinearLayout
         android:id="@+id/linearLayout"
         android:layout_width="match_parent"
