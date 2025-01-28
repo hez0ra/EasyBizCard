@@ -10,8 +10,196 @@
         android:id="@+id/email_input"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter email"
-        android:inputType="text"
+        android:hint="Введите электронную почту"
+        android:inputType="textEmailAddress"
+        android:textColorHint="@color/second"
+        android:textColor="@color/text"
         android:padding="8dp"/>
+
+    <!-- Размер шрифта -->
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Размер текста"
+            android:textSize="16sp"
+            android:textColor="@color/text"
+            android:layout_gravity="center_vertical" />
+
+        <Spinner
+            android:id="@+id/email_spinner_text_size"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:spinnerMode="dropdown" />
+    </LinearLayout>
+
+    <!-- Стиль шрифта -->
+    <TextView
+        android:id="@+id/email_text_font_style_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Выберите стиль шрифта"
+        android:textColor="@color/text"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <ImageButton
+            android:id="@+id/email_style_bold"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_bold"
+            android:contentDescription="Жирный"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/email_style_italic"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_italic"
+            android:contentDescription="Курсив"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/email_style_underline"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_underline"
+            android:contentDescription="Подчеркнутый"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/email_style_strikethrough"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_strikethrough"
+            android:contentDescription="Зачеркнутый" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <ImageButton
+            android:id="@+id/email_align_left"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_left"
+            android:contentDescription="Жирный"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/email_align_center"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_center"
+            android:contentDescription="Курсив"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/email_align_right"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_right"
+            android:contentDescription="Подчеркнутый"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/email_align_justify"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_justify"
+            android:contentDescription="Подчеркнутый"
+            android:layout_marginEnd="8dp" />
+
+    </LinearLayout>
+
+    <!-- Выбор цвета текста -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/email_text_color_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Цвет текста"
+            android:textSize="16sp"
+            android:textColor="@color/text"/>
+
+        <View
+            android:id="@+id/email_color_picker_preview"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="16dp"
+            android:background="@color/black"
+            android:layout_gravity="center_vertical"/>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/email_color_picker_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Выбрать"
+            android:textColor="@color/white"
+            android:layout_gravity="end"
+            android:backgroundTint="@color/main"/>
+    </LinearLayout>
+
+    <!-- Выбор семейства шрифтов -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/email_font_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Шрифт"
+            android:textSize="16sp"
+            android:textColor="@color/text"/>
+
+        <Spinner
+            android:id="@+id/email_font_family_spinner"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:entries="@array/font_families"/>
+    </LinearLayout>
+
 
 </LinearLayout>

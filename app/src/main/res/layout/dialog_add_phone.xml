@@ -4,14 +4,216 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
+    android:background="@color/background"
     android:padding="16dp">
 
-    <EditText
-        android:id="@+id/phone_input"
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Enter phone"
-        android:inputType="text"
-        android:padding="8dp"/>
+        android:orientation="horizontal">
+
+        <Spinner
+            android:id="@+id/country_spinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:paddingHorizontal="8dp"
+            android:layout_gravity="center_vertical"
+            android:paddingVertical="4dp"/>
+
+        <EditText
+            android:id="@+id/phone_input"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Введите номер"
+            android:inputType="phone"
+            android:textColor="@color/text"
+            android:textColorHint="@color/second"
+            android:layout_gravity="center_vertical"
+            android:padding="8dp"/>
+
+    </LinearLayout>
+
+    <!-- Размер шрифта -->
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Размер текста"
+            android:textSize="16sp"
+            android:textColor="@color/text"
+            android:layout_gravity="center_vertical" />
+
+        <Spinner
+            android:id="@+id/phone_spinner_text_size"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            android:spinnerMode="dropdown" />
+    </LinearLayout>
+
+    <!-- Стиль шрифта -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Выберите стиль шрифта"
+        android:textColor="@color/text"
+        android:textSize="16sp"
+        android:layout_marginTop="16dp" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <ImageButton
+            android:id="@+id/phone_style_bold"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_bold"
+            android:contentDescription="Жирный"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/phone_style_italic"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_italic"
+            android:contentDescription="Курсив"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/phone_style_underline"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_underline"
+            android:contentDescription="Подчеркнутый"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/phone_style_strikethrough"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_strikethrough"
+            android:contentDescription="Зачеркнутый" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="8dp">
+
+        <ImageButton
+            android:id="@+id/phone_align_left"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_left"
+            android:contentDescription="Жирный"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/phone_align_center"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_center"
+            android:contentDescription="Курсив"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/phone_align_right"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_right"
+            android:contentDescription="Подчеркнутый"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/phone_align_justify"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_justify"
+            android:contentDescription="Подчеркнутый"
+            android:layout_marginEnd="8dp" />
+
+    </LinearLayout>
+
+    <!-- Выбор цвета текста -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Цвет текста"
+            android:textSize="16sp"
+            android:textColor="@color/text"/>
+
+        <View
+            android:id="@+id/phone_color_picker_preview"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="16dp"
+            android:background="@color/black"
+            android:layout_gravity="center_vertical"/>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/phone_color_picker_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Выбрать"
+            android:textColor="@color/white"
+            android:layout_gravity="end"
+            android:backgroundTint="@color/main"/>
+    </LinearLayout>
+
+    <!-- Выбор семейства шрифтов -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Шрифт"
+            android:textSize="16sp"
+            android:textColor="@color/text"/>
+
+        <Spinner
+            android:id="@+id/phone_font_family_spinner"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:entries="@array/font_families"/>
+    </LinearLayout>
 
 </LinearLayout>

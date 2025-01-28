@@ -17,8 +17,18 @@
         <item>sans-serif-condensed-medium</item>
         <item>serif</item>
         <item>monospace</item>
-        <item>casual</item>
         <item>cursive</item>
-        <item>sans-serif-smallcaps</item>
+        <!-- Это скачанные шрифты -->
+        <item>arimo</item>
+        <item>roboto</item>
+        <item>roboto condensed</item>
+        <item>caveat</item>
+        <item>comfortaa</item>
+        <item>great vibes</item>
+        <item>jura</item>
+        <item>mulish</item>
+        <item>noto serif</item>
+        <item>playfair display</item>
     </string-array>
+
 </resources>

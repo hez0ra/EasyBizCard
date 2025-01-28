@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "volosyuk.easybizcard"
-        minSdk 24
+        minSdk 26
         targetSdk 34
         versionCode 1
         versionName "1.0"
@@ -32,7 +32,8 @@ android {
 
 dependencies {
 
-    implementation libs.glide  // или последняя доступная версия
+    implementation libs.glide
+    implementation files('D:/AndoidStudio/colorpicker.aar')  // или последняя доступная версия
     annotationProcessor libs.compiler  // если используете Java
     implementation libs.appcompat
     implementation libs.material
@@ -49,8 +50,9 @@ dependencies {
     implementation libs.firebase.database
     implementation libs.zxing.android.embedded // qr
     implementation libs.mpandroidchart // диаграммы
-    implementation libs.colorpicker // выбор цвета
     implementation libs.ucrop // обработка фотографий
+    implementation libs.libphonenumber // номера телефонов
+    implementation libs.worldcountrydata // флаги стран
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

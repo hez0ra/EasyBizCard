@@ -47,4 +47,12 @@
         android:layout_height="wrap_content"
         android:text="Ссылка" />
 
+    <Button
+        android:id="@+id/btn_add_social_media"
+        android:textColor="@color/main"
+        android:background="@android:color/transparent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Социальные сети" />
+
 </LinearLayout>

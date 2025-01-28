@@ -54,6 +54,11 @@ public class AddElementBottomSheet extends BottomSheetDialogFragment {
             dismiss();
         });
 
+        view.findViewById(R.id.btn_add_social_media).setOnClickListener(v -> {
+            if (listener != null) listener.onElementSelected("social_media");
+            dismiss();
+        });
+
         return view;
     }
 }
