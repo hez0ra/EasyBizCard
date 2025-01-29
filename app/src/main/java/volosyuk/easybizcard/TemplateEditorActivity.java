@@ -59,6 +59,7 @@ import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.google.gson.Gson;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
@@ -83,6 +84,7 @@ import java.util.regex.Pattern;
 
 import volosyuk.easybizcard.adapters.CountryAdapter;
 import volosyuk.easybizcard.adapters.SocialNetworkAdapter;
+import volosyuk.easybizcard.models.BusinessCardElement;
 import volosyuk.easybizcard.models.SocialNetwork;
 import volosyuk.easybizcard.utils.AddElementBottomSheet;
 import volosyuk.easybizcard.utils.CountryManager;
@@ -92,6 +94,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
     private ImageButton saveBtn;
     private List<SocialNetwork> addedSocialMedia = new ArrayList<>();
+    List<BusinessCardElement> businessCardElements = new ArrayList<>();
     private final Integer[] fontSizes = {10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 50, 60};
     private int selectedTextSize = 14;  // Значение по умолчанию для текста
     private int selectedTextColor = Color.BLACK;
@@ -100,6 +103,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
     private static final int REQUEST_CAMERA = 1;
     private static final int REQUEST_GALLERY = 2;
     private Uri photoUri;
+    String userId;
     // Хранение выбранного выравнивания
 
     @Override
@@ -114,7 +118,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         });
 
         layoutContainer = findViewById(R.id.template_editor_content);
-
+        userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
         FloatingActionButton fabAdd = findViewById(R.id.fab_add);
         fabAdd.setOnClickListener(v -> {
             AddElementBottomSheet bottomSheet = new AddElementBottomSheet();
@@ -146,7 +150,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         saveBtn = findViewById(R.id.btn_save_card);
         saveBtn.setOnClickListener(v -> {
             if(layoutContainer.getChildAt(0) != null){
-                saveJsonWithMetadata(extractDataFromLayout(layoutContainer));
+                saveBusinessCardToFirebase();
             }
         });
     }
@@ -477,6 +481,8 @@ public class TemplateEditorActivity extends AppCompatActivity {
                 ViewGroup.LayoutParams.WRAP_CONTENT
         ));
         layoutContainer.addView(imageView); // Добавляем ImageView в LinearLayout
+
+        addImageElementToJSON(imageUri);
     }
 
 
@@ -572,6 +578,8 @@ public class TemplateEditorActivity extends AppCompatActivity {
         }
 
         layoutContainer.addView(contentView);
+
+        addTextElementToJSON(content, textSize, fontFamily, colorText, isBold, isItalic, isUnderline, isStrikethrough, alignment);
     }
 
 
@@ -733,6 +741,8 @@ public class TemplateEditorActivity extends AppCompatActivity {
         });
 
         layoutContainer.addView(phoneView);
+
+        addPhoneElementToJSON(phone, textSize, fontFamily, colorText, isBold, isItalic, isUnderline, isStrikethrough, alignment);
     }
 
 
@@ -844,6 +854,9 @@ public class TemplateEditorActivity extends AppCompatActivity {
             startActivity(intent);
         });
         layoutContainer.addView(emailView);
+
+
+        addEmailElementToJSON(email, textSize, fontFamily, colorText, isBold, isItalic, isUnderline, isStrikethrough, alignment);
     }
 
 
@@ -1000,6 +1013,8 @@ public class TemplateEditorActivity extends AppCompatActivity {
         });
 
         layoutContainer.addView(linkView);
+
+        addLinkElementToJSON(link, textSize, fontFamily, colorText, isBold, isItalic, isUnderline, isStrikethrough, alignment);
     }
 
     private void addLinkElement(String link, String hyperText, int textSize, String fontFamily, int colorText, boolean isBold, boolean isItalic, boolean isUnderline,
@@ -1041,6 +1056,8 @@ public class TemplateEditorActivity extends AppCompatActivity {
         });
 
         layoutContainer.addView(linkView);
+
+        addLinkElementToJSON(link, hyperText, textSize, fontFamily, colorText, isBold, isItalic, isUnderline, isStrikethrough, alignment);
     }
 
 
@@ -1223,6 +1240,8 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
         // Добавляем ScrollView в родительский LinearLayout
         layoutContainer.addView(scrollView);
+
+        addSocialMediaElementToJSON(addedSocialNetworks);
     }
 
     // Диалог подтверждения перехода
@@ -1253,71 +1272,208 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
     // ------------------ Save information ---------------------------
 
-
-    private JSONObject extractDataFromLayout(ViewGroup layout) {
-        JSONObject json = new JSONObject();
-        try {
-            for (int i = 0; i < layout.getChildCount(); i++) {
-                View child = layout.getChildAt(i);
-
-                if (child instanceof TextView) {
-                    // Извлечение текста из TextView
-                    TextView textView = (TextView) child;
-                    json.put("text_" + i, textView.getText().toString());
-
-                } else if (child instanceof ImageView) {
-                    // Обработка ImageView: добавляем тег, если он задан
-                    ImageView imageView = (ImageView) child;
-                    Drawable drawable = imageView.getDrawable();
-                    if (drawable != null) {
-                        json.put("image_" + i, "image_placeholder"); // Можно заменить на URL, если изображение уже загружено
-                    }
-
-                } else if (child instanceof ScrollView) {
-                    // Рекурсивно извлекаем данные из ScrollView
-                    ScrollView scrollView = (ScrollView) child;
-                    ViewGroup innerLayout = (ViewGroup) scrollView.getChildAt(0);
-                    json.put("scrollView_" + i, extractDataFromLayout(innerLayout));
-
-                } else if (child instanceof ViewGroup) {
-                    // Рекурсивно обрабатываем вложенные макеты
-                    ViewGroup group = (ViewGroup) child;
-                    json.put("layout_" + i, extractDataFromLayout(group));
-                }
-            }
-        } catch (JSONException e) {
-            Log.e("JSON", "Error creating JSON", e);
-        }
-        return json;
+    // Функция для добавления текстового элемента
+    private void addTextElementToJSON(String content, int textSize, String fontFamily, int colorText, boolean isBold,
+                                      boolean isItalic, boolean isUnderline, boolean isStrikethrough, int alignment) {
+        BusinessCardElement element = new BusinessCardElement(
+                "text",
+                content,
+                textSize,
+                fontFamily,
+                colorText,
+                isBold,
+                isItalic,
+                isUnderline,
+                isStrikethrough,
+                alignment // Храним выравнивание как строку
+        );
+        businessCardElements.add(element);
     }
 
-    public void saveJsonWithMetadata(JSONObject json) {
-        // Генерация уникального идентификатора
-        String documentId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
-        String filePath = "business_cards/" + FirebaseAuth.getInstance().getCurrentUser().getUid() + "/json_" + documentId + ".json";
+    // Функция для добавления изображения
+    private void addImageElementToJSON(Uri imageUri) {
+        BusinessCardElement element = new BusinessCardElement(
+                "image",
+                imageUri.toString() // Преобразуем Uri в строку для хранения
+        );
+        businessCardElements.add(element);
+    }
 
-        // Ссылка на Firebase Storage
-        FirebaseStorage storage = FirebaseStorage.getInstance();
-        StorageReference storageRef = storage.getReference().child(filePath);
+    // Функция для добавления ссылки с кастомным текстом
+    private void addLinkElementToJSON(String link, String hyperText, int textSize, String fontFamily, int colorText,
+                                      boolean isBold, boolean isItalic, boolean isUnderline, boolean isStrikethrough, int alignment) {
+        BusinessCardElement element = new BusinessCardElement(
+                "link",
+                link,
+                hyperText,
+                textSize,
+                fontFamily,
+                colorText,
+                isBold,
+                isItalic,
+                isUnderline,
+                isStrikethrough,
+                alignment
+        );
+        businessCardElements.add(element);
+    }
 
-        try {
-            // Преобразование JSON в байты
-            String jsonString = json.toString();
-            byte[] jsonData = jsonString.getBytes(StandardCharsets.UTF_8);
+    // Функция для добавления ссылки (без кастомного текста)
+    private void addLinkElementToJSON(String link, int textSize, String fontFamily, int colorText,
+                                      boolean isBold, boolean isItalic, boolean isUnderline, boolean isStrikethrough, int alignment) {
+        addLinkElementToJSON(link, link, textSize, fontFamily, colorText, isBold, isItalic, isUnderline, isStrikethrough, alignment);
+    }
 
-            // Загрузка JSON в Firebase Storage
-            UploadTask uploadTask = storageRef.putBytes(jsonData);
-            uploadTask.addOnSuccessListener(taskSnapshot -> {
-                storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-                    // После успешной загрузки файла создаем документ в Firestore
-                    saveMetadataToFirestore(documentId, uri.toString());
-                });
-            }).addOnFailureListener(e -> {
-                Log.e("Firebase", "Error uploading JSON", e);
-            });
-        } catch (Exception e) {
-            Log.e("Firebase", "Error converting JSON to bytes", e);
+    // Функция для добавления социальных сетей в виде списка строк
+    private void addSocialMediaElementToJSON(List<SocialNetwork> addedSocialNetworks) {
+        if (addedSocialNetworks != null && !addedSocialNetworks.isEmpty()) {
+            // Преобразуем список SocialNetwork в список строк (например, ссылки)
+            List<String> socialNetworkLinks = new ArrayList<>();
+            for (SocialNetwork socialNetwork : addedSocialNetworks) {
+                // Если ты хочешь хранить ссылки, используй getLink
+                socialNetworkLinks.add(socialNetwork.getLink());
+            }
+
+            // Создаем элемент для бизнес-карты с типом "socialMedia" и списком ссылок
+            BusinessCardElement element = new BusinessCardElement(
+                    "socialMedia",
+                    socialNetworkLinks // Здесь будет список строк с ссылками
+            );
+            businessCardElements.add(element);
+
+            Log.d("SocialNetworks", "Добавлены соцсети: " + socialNetworkLinks.toString());
+        } else {
+            Log.d("SocialNetworks", "Нет социальных сетей для добавления");
         }
+    }
+
+
+    // Функция для добавления номера телефона
+    private void addPhoneElementToJSON(String phone, int textSize, String fontFamily, int colorText, boolean isBold,
+                                       boolean isItalic, boolean isUnderline, boolean isStrikethrough, int alignment) {
+        BusinessCardElement element = new BusinessCardElement(
+                "phone",
+                phone,
+                textSize,
+                fontFamily,
+                colorText,
+                isBold,
+                isItalic,
+                isUnderline,
+                isStrikethrough,
+                alignment
+        );
+        businessCardElements.add(element);
+    }
+
+    // Функция для добавления email
+    private void addEmailElementToJSON(String email, int textSize, String fontFamily, int colorText, boolean isBold,
+                                       boolean isItalic, boolean isUnderline, boolean isStrikethrough, int alignment) {
+        BusinessCardElement element = new BusinessCardElement(
+                "email",
+                email,
+                textSize,
+                fontFamily,
+                colorText,
+                isBold,
+                isItalic,
+                isUnderline,
+                isStrikethrough,
+                alignment
+        );
+        businessCardElements.add(element);
+    }
+
+
+//    private JSONObject extractDataFromLayout(ViewGroup layout) {
+//        JSONObject json = new JSONObject();
+//        try {
+//            for (int i = 0; i < layout.getChildCount(); i++) {
+//                View child = layout.getChildAt(i);
+//
+//                if (child instanceof TextView) {
+//                    // Извлечение текста из TextView
+//                    TextView textView = (TextView) child;
+//                    json.put("text_" + i, textView.getText().toString());
+//
+//                } else if (child instanceof ImageView) {
+//                    // Обработка ImageView: добавляем тег, если он задан
+//                    ImageView imageView = (ImageView) child;
+//                    Drawable drawable = imageView.getDrawable();
+//                    if (drawable != null) {
+//                        json.put("image_" + i, "image_placeholder"); // Можно заменить на URL, если изображение уже загружено
+//                    }
+//
+//                } else if (child instanceof ScrollView) {
+//                    // Рекурсивно извлекаем данные из ScrollView
+//                    ScrollView scrollView = (ScrollView) child;
+//                    ViewGroup innerLayout = (ViewGroup) scrollView.getChildAt(0);
+//                    json.put("scrollView_" + i, extractDataFromLayout(innerLayout));
+//
+//                } else if (child instanceof ViewGroup) {
+//                    // Рекурсивно обрабатываем вложенные макеты
+//                    ViewGroup group = (ViewGroup) child;
+//                    json.put("layout_" + i, extractDataFromLayout(group));
+//                }
+//            }
+//        } catch (JSONException e) {
+//            Log.e("JSON", "Error creating JSON", e);
+//        }
+//        return json;
+//    }
+//
+//    public void saveJsonWithMetadata(JSONObject json) {
+//        // Генерация уникального идентификатора
+//        String documentId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
+//        String filePath = "business_cards/" + userId + "/json_" + documentId + ".json";
+//
+//        // Ссылка на Firebase Storage
+//        FirebaseStorage storage = FirebaseStorage.getInstance();
+//        StorageReference storageRef = storage.getReference().child(filePath);
+//
+//        try {
+//            // Преобразование JSON в байты
+//            String jsonString = json.toString();
+//            byte[] jsonData = jsonString.getBytes(StandardCharsets.UTF_8);
+//
+//            // Загрузка JSON в Firebase Storage
+//            UploadTask uploadTask = storageRef.putBytes(jsonData);
+//            uploadTask.addOnSuccessListener(taskSnapshot -> {
+//                storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+//                    // После успешной загрузки файла создаем документ в Firestore
+//                    saveMetadataToFirestore(documentId, uri.toString());
+//                });
+//            }).addOnFailureListener(e -> {
+//                Log.e("Firebase", "Error uploading JSON", e);
+//            });
+//        } catch (Exception e) {
+//            Log.e("Firebase", "Error converting JSON to bytes", e);
+//        }
+//    }
+
+    private void saveBusinessCardToFirebase() {
+        // Преобразуем список элементов в JSON
+        Gson gson = new Gson();
+        String json = gson.toJson(businessCardElements);
+
+
+        // Сохраняем JSON в Firebase Storage
+        String documentId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
+
+        String filePath = "business_cards/" + userId + "/json_" + documentId + ".json";
+
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference().child(filePath);
+        storageRef.putBytes(json.getBytes())
+                .addOnSuccessListener(taskSnapshot -> {
+                    Log.d("Firebase", "JSON успешно загружен.");
+                    storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        // После успешной загрузки файла создаем документ в Firestore
+                        saveMetadataToFirestore(documentId, uri.toString());
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("Firebase", "Ошибка загрузки JSON: " + e.getMessage());
+                });
     }
 
     private void saveMetadataToFirestore(String documentId, String fileUrl) {
@@ -1326,7 +1482,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         // Метаданные для документа
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("id", documentId);
-        metadata.put("user_id", FirebaseAuth.getInstance().getCurrentUser().getUid());
+        metadata.put("user_id", userId);
         metadata.put("status", "обрабатывается");
         metadata.put("file_url", fileUrl);
         metadata.put("created_at", System.currentTimeMillis());

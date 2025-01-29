@@ -53,6 +53,7 @@ dependencies {
     implementation libs.ucrop // обработка фотографий
     implementation libs.libphonenumber // номера телефонов
     implementation libs.worldcountrydata // флаги стран
+    implementation libs.gson // JSON
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
