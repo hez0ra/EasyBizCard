@@ -53,7 +53,7 @@ import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 
-import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.models.BusinessCardv0_5;
 import volosyuk.easybizcard.utils.BusinessCardRepository;
 
 public class EditActivity extends AppCompatActivity {
@@ -493,7 +493,7 @@ public class EditActivity extends AppCompatActivity {
 
     private void saveBusinessCardToDatabase(String imageUrl) {
         String userId = mAuth.getCurrentUser().getUid();
-        BusinessCard card = new BusinessCard(userId, title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links, sample);
+        BusinessCardv0_5 card = new BusinessCardv0_5(userId, title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links, sample);
         try {
             businessCardRepository.addBusinessCard(card);
             Toast.makeText(this, "Успешное сохранение визитки", Toast.LENGTH_SHORT).show();
@@ -512,7 +512,7 @@ public class EditActivity extends AppCompatActivity {
     }
 
     private void checkIntentExtra(){
-        BusinessCard card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
+        BusinessCardv0_5 card = (BusinessCardv0_5) getIntent().getSerializableExtra(EXTRA_CARD);
         if(card != null){
             Glide.with(this)
                     .load(card.getImageUrl())  // Загрузка изображения
@@ -533,7 +533,7 @@ public class EditActivity extends AppCompatActivity {
 
             save.setOnClickListener(v -> {
                 try {
-                    BusinessCard result = new BusinessCard(card.getUserId(), title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links, card.getSample());
+                    BusinessCardv0_5 result = new BusinessCardv0_5(card.getUserId(), title.getText().toString().trim(), description.getText().toString().trim(), number.getText().toString().trim(), email.getText().toString().trim(), site.getText().toString().trim(), imageUrl, links, card.getSample());
                     result.setCardId(card.getCardId());
                     result.setTextColor(String.format("#%08X", (0xFFFFFFFF & textColor)));
                     result.setBackgroundColor(String.format("#%08X", (0xFFFFFFFF & backgroundColor)));

@@ -16,27 +16,27 @@ import java.util.List;
 
 import volosyuk.easybizcard.BusinessCardDetailActivity;
 import volosyuk.easybizcard.R;
-import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.models.BusinessCardv0_5;
 
 public class CardAdapter extends RecyclerView.Adapter<CardAdapter.CardViewHolder> {
 
     private Context context;
-    private List<BusinessCard> cardList;
+    private List<BusinessCardv0_5> cardList;
 
-    public CardAdapter(Context context, List<BusinessCard> cardList) {
+    public CardAdapter(Context context, List<BusinessCardv0_5> cardList) {
         this.context = context;
         this.cardList = cardList;
     }
 
     @Override
     public CardViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(context).inflate(R.layout.item_business_card, parent, false);
+        View view = LayoutInflater.from(context).inflate(R.layout.item_business_cardv0_5, parent, false);
         return new CardViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(CardViewHolder holder, int position) {
-        BusinessCard card = cardList.get(position);
+        BusinessCardv0_5 card = cardList.get(position);
         holder.title.setText(card.getTitle());
         holder.description.setText(card.getDescription());
 

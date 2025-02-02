@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/template_editor"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:background="@color/background"
@@ -8,7 +9,10 @@
 
     <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <!-- Основное содержимое шаблона -->
         <LinearLayout
@@ -16,22 +20,29 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical"
-            android:padding="16dp" />
+            android:padding="16dp">
+
+        </LinearLayout>
 
     </ScrollView>
 
 
     <!-- Кнопка добавления элементов -->
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:src="@drawable/icon_add_white"
-        android:contentDescription="Добавить элемент"
-        android:backgroundTint="@color/main"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:layout_margin="16dp" />
+        android:layout_margin="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"
+        android:backgroundTint="@color/main"
+        android:contentDescription="Добавить элемент"
+        android:src="@drawable/icon_add_white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
     <ImageButton
         android:id="@+id/btn_save_card"
@@ -44,6 +55,50 @@
         android:background="@drawable/rounded_16dp"
         android:backgroundTint="@color/main"
         android:elevation="4dp"
-        android:src="@drawable/icon_save_white" />
+        android:src="@drawable/icon_save_white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
-</RelativeLayout>
+    <ImageButton
+        android:id="@+id/btn_edit_elements"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="16dp"
+        android:layout_toStartOf="@+id/fab_add"
+        android:layout_toEndOf="@+id/btn_save_card"
+        android:background="@drawable/rounded_16dp"
+        android:backgroundTint="@color/main"
+        android:elevation="4dp"
+        android:src="@drawable/icon_edit_white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/fab_add"
+        app:layout_constraintStart_toEndOf="@+id/btn_print_editor" />
+
+
+    <ImageButton
+        android:id="@+id/btn_print_editor"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/rounded_16dp"
+        android:elevation="4dp"
+        android:src="@drawable/icon_print_white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <ImageButton
+        android:id="@+id/btn_share_editor"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_marginBottom="16dp"
+        android:background="@drawable/rounded_16dp"
+        android:elevation="4dp"
+        android:src="@drawable/icon_share_white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/btn_print_editor"
+        app:layout_constraintStart_toEndOf="@+id/btn_save_card" />
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

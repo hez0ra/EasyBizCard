@@ -32,7 +32,6 @@ public class SocialNetwork {
         return link;
     }
 
-
     @Override
     public String toString() {
         return "SocialNetwork{name='" + name + "', link='" + link + "'}";

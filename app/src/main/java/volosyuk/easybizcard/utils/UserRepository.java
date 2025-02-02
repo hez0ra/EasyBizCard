@@ -1,12 +1,9 @@
 package volosyuk.easybizcard.utils;
 
-import android.content.Intent;
 import android.util.Log;
 
-import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
-import com.google.firebase.auth.GoogleAuthProvider;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -16,8 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import volosyuk.easybizcard.ProfileActivity;
-import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.models.BusinessCardv0_5;
 import volosyuk.easybizcard.models.User;
 
 public class UserRepository {
@@ -163,8 +159,8 @@ public class UserRepository {
     }
 
     // Метод для получения всех визиток, добавленных в закладки текущим пользователем
-    public CompletableFuture<List<BusinessCard>> getAllBookmarkedCards() {
-        CompletableFuture<List<BusinessCard>> future = new CompletableFuture<>();
+    public CompletableFuture<List<BusinessCardv0_5>> getAllBookmarkedCards() {
+        CompletableFuture<List<BusinessCardv0_5>> future = new CompletableFuture<>();
         String userId = auth.getCurrentUser().getUid();
 
         // Получаем документ текущего пользователя
@@ -180,13 +176,13 @@ public class UserRepository {
                         }
 
                         // Загружаем визитки по списку идентификаторов
-                        List<CompletableFuture<BusinessCard>> cardFutures = new ArrayList<>();
+                        List<CompletableFuture<BusinessCardv0_5>> cardFutures = new ArrayList<>();
                         for (String cardId : bookmarkedCards) {
-                            CompletableFuture<BusinessCard> cardFuture = new CompletableFuture<>();
+                            CompletableFuture<BusinessCardv0_5> cardFuture = new CompletableFuture<>();
                             db.collection("business_cards").document(cardId).get()
                                     .addOnSuccessListener(cardDoc -> {
                                         if (cardDoc.exists()) {
-                                            BusinessCard card = cardDoc.toObject(BusinessCard.class);
+                                            BusinessCardv0_5 card = cardDoc.toObject(BusinessCardv0_5.class);
                                             if (card != null) {
                                                 card.setCardId(cardId);
                                                 cardFuture.complete(card);
@@ -202,10 +198,10 @@ public class UserRepository {
                         // Объединяем результаты всех запросов в один список
                         CompletableFuture.allOf(cardFutures.toArray(new CompletableFuture[0]))
                                 .thenAccept(v -> {
-                                    List<BusinessCard> bookmarkedCardList = new ArrayList<>();
-                                    for (CompletableFuture<BusinessCard> cardFuture : cardFutures) {
+                                    List<BusinessCardv0_5> bookmarkedCardList = new ArrayList<>();
+                                    for (CompletableFuture<BusinessCardv0_5> cardFuture : cardFutures) {
                                         try {
-                                            BusinessCard card = cardFuture.get();
+                                            BusinessCardv0_5 card = cardFuture.get();
                                             if (card != null) {
                                                 bookmarkedCardList.add(card);
                                             }

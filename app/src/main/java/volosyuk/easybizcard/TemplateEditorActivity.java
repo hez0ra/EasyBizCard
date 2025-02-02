@@ -2,19 +2,31 @@ package volosyuk.easybizcard;
 
 import static volosyuk.easybizcard.utils.CountryManager.PHONE_CODES;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.app.ActivityCompat;
+
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
+import android.graphics.pdf.PdfDocument;
 import android.graphics.text.LineBreaker;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.Editable;
 import android.text.InputType;
@@ -28,10 +40,10 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -39,6 +51,7 @@ import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.content.res.ResourcesCompat;
@@ -53,47 +66,60 @@ import com.flask.colorpicker.ColorPickerView;
 import com.flask.colorpicker.OnColorSelectedListener;
 import com.flask.colorpicker.builder.ColorPickerClickListener;
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder;
+import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
-import com.google.firebase.storage.UploadTask;
 import com.google.gson.Gson;
 import com.google.i18n.phonenumbers.NumberParseException;
 import com.google.i18n.phonenumbers.PhoneNumberUtil;
 import com.google.i18n.phonenumbers.Phonenumber;
+import com.squareup.picasso.Picasso;
 import com.yalantis.ucrop.UCrop;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import volosyuk.easybizcard.adapters.CountryAdapter;
+import volosyuk.easybizcard.adapters.EditElementsAdapter;
 import volosyuk.easybizcard.adapters.SocialNetworkAdapter;
 import volosyuk.easybizcard.models.BusinessCardElement;
 import volosyuk.easybizcard.models.SocialNetwork;
 import volosyuk.easybizcard.utils.AddElementBottomSheet;
 import volosyuk.easybizcard.utils.CountryManager;
+import volosyuk.easybizcard.utils.QRCodeGenerator;
+
+// TODO: изменение фона
+// TODO: экраны загрузок при сохранении и открытии
 
 
 public class TemplateEditorActivity extends AppCompatActivity {
 
-    private ImageButton saveBtn;
-    private List<SocialNetwork> addedSocialMedia = new ArrayList<>();
+    private final String domen = "https:/easybizcard.com/";
+    public static final String EXTRA_CARD = "card_elements";
+    public static final String EXTRA_CARD_ID = "card_id";
+    private boolean editExistedImage = false;
+    private boolean editExistedCard = false;
+    private int posistionEditedImage = -1;
+    private ImageButton saveBtn, editBtn, shareBtn, printBtn;
+    private ArrayList<SocialNetwork> addedSocialMedia = new ArrayList<>();
+    private ConstraintLayout mainLayout;
+    private EditElementsAdapter adapter;
     List<BusinessCardElement> businessCardElements = new ArrayList<>();
     private final Integer[] fontSizes = {10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 50, 60};
     private int selectedTextSize = 14;  // Значение по умолчанию для текста
@@ -102,8 +128,12 @@ public class TemplateEditorActivity extends AppCompatActivity {
     private LinearLayout layoutContainer;
     private static final int REQUEST_CAMERA = 1;
     private static final int REQUEST_GALLERY = 2;
+    private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 3;
+    private static final int REQUEST_CODE_PERMISSION = 4;
+    private static final int REQUEST_CODE_CREATE_FILE = 5;
+    private static final float MM_TO_POINTS = 2.83465f;
     private Uri photoUri;
-    String userId;
+    String userId, cardId;
     // Хранение выбранного выравнивания
 
     @Override
@@ -117,8 +147,11 @@ public class TemplateEditorActivity extends AppCompatActivity {
             return insets;
         });
 
+        mainLayout = findViewById(R.id.template_editor);
         layoutContainer = findViewById(R.id.template_editor_content);
         userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+
+
         FloatingActionButton fabAdd = findViewById(R.id.fab_add);
         fabAdd.setOnClickListener(v -> {
             AddElementBottomSheet bottomSheet = new AddElementBottomSheet();
@@ -150,18 +183,358 @@ public class TemplateEditorActivity extends AppCompatActivity {
         saveBtn = findViewById(R.id.btn_save_card);
         saveBtn.setOnClickListener(v -> {
             if(layoutContainer.getChildAt(0) != null){
-                saveBusinessCardToFirebase();
+                if (editExistedCard) {
+                    cardId = getIntent().getStringExtra(EXTRA_CARD_ID);
+                    updateBusinessCardInFirebase(cardId);
+                }
+                else {
+                    saveBusinessCardToFirebase();
+                };
             }
         });
+
+        editBtn = findViewById(R.id.btn_edit_elements);
+        editBtn.setOnClickListener(v -> {
+            showElementsDialog();
+        });
+
+        shareBtn = findViewById(R.id.btn_share_editor);
+        shareBtn.setOnClickListener(v -> {
+            if(layoutContainer.getChildAt(0) != null){
+                exportBusinessCardAsImage();
+            }
+            else {
+                Toast.makeText(this, "Добавьте элементы", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        printBtn = findViewById(R.id.btn_print_editor);
+        printBtn.setOnClickListener(v -> {
+            if (layoutContainer.getChildAt(0) != null) {
+                checkPermissionsAndGeneratePdf();
+            } else {
+                Toast.makeText(this, "Добавьте элементы", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        if(getIntent().getSerializableExtra(EXTRA_CARD) != null){
+            businessCardElements = (ArrayList<BusinessCardElement>) getIntent().getSerializableExtra(EXTRA_CARD);
+            editExistedCard = true;
+            refreshLayout();
+        }
+    }
+
+    private void showElementsDialog() {
+        BottomSheetDialog bottomSheetDialog = new BottomSheetDialog(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_edit_elements, null);
+        bottomSheetDialog.setContentView(dialogView);
+
+        RecyclerView recyclerView = dialogView.findViewById(R.id.recycler_edit_elements);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        adapter = new EditElementsAdapter(businessCardElements, new EditElementsAdapter.OnElementActionListener() {
+            @Override
+            public void onEdit(int position) {
+                editElement(position);
+                bottomSheetDialog.dismiss();
+            }
+
+            @Override
+            public void onDelete(int position) {
+                deleteElement(position);
+                adapter.notifyDataSetChanged();
+            }
+
+            @Override
+            public void onMoveUp(int position) {
+                if (position > 0) {
+                    Collections.swap(businessCardElements, position, position-1);
+                    refreshLayout();
+                    adapter.notifyItemMoved(position, position-1);
+                    adapter.notifyItemChanged(position);     // Бывшая верхняя позиция
+                    adapter.notifyItemChanged(position-1);   // Текущая позиция
+                }
+            }
+
+            @Override
+            public void onMoveDown(int position) {
+                if (position < businessCardElements.size()-1) {
+                    Collections.swap(businessCardElements, position, position+1);
+                    refreshLayout();
+                    adapter.notifyItemMoved(position, position+1);
+                    adapter.notifyItemChanged(position);     // Бывшая верхняя позиция
+                    adapter.notifyItemChanged(position+1);   // Текущая позиция
+                }
+            }
+        });
+
+        recyclerView.setAdapter(adapter);
+        bottomSheetDialog.show();
+    }
+
+    private void deleteElement(int position) {
+        businessCardElements.remove(position);
+        refreshLayout();
+    }
+
+    private void refreshLayout() {
+        layoutContainer.removeAllViews();
+        for (BusinessCardElement element : businessCardElements) {
+            addElementToLayout(element);
+        }
+    }
+
+    private void editElement(int position){
+        BusinessCardElement element = businessCardElements.get(position);
+        switch (element.getType()) {
+            case "text":
+                editTextElement(position);
+                break;
+            case "image":
+                editImageElement(position);
+                break;
+            case "link":
+                editLinkElement(position);
+                break;
+            case "socialMedia":
+                editSocialMediaElement(position);
+                break;
+            case "phone":
+                editPhoneElement(position);
+                break;
+            case "email":
+                editEmailElement(position);
+                break;
+        }
+    }
+
+    private void addElementToLayout(BusinessCardElement element) {
+        switch (element.getType()) {
+            case "text":
+                addTextView(element);
+                break;
+            case "image":
+                addImageView(element);
+                break;
+            case "link":
+                addLinkView(element);
+                break;
+            case "socialMedia":
+                addSocialMediaView(element);
+                break;
+            case "phone":
+                addPhoneView(element);
+                break;
+            case "email":
+                addEmailView(element);
+                break;
+        }
+    }
+
+    private void addTextView(BusinessCardElement element) {
+        TextView textView = new TextView(this);
+        textView.setText(element.getText());
+        textView.setTextSize(element.getTextSize());
+        textView.setTypeface(Typeface.create(element.getFontFamily(), Typeface.NORMAL));
+        textView.setTextColor(element.getColorText());
+        textView.setGravity(element.getAlignment());
+
+        if (element.isBold()) textView.setTypeface(textView.getTypeface(), Typeface.BOLD);
+        if (element.isItalic()) textView.setTypeface(textView.getTypeface(), Typeface.ITALIC);
+        if (element.isUnderline()) textView.setPaintFlags(textView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        if (element.isStrikethrough()) textView.setPaintFlags(textView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+
+        layoutContainer.addView(textView);
+    }
+
+    private void addImageView(BusinessCardElement element) {
+        ImageView imageView = new ImageView(this);
+        Picasso.get().load(element.getImageUrl()).into(imageView);
+
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+
+        params.setMargins(0, 0, 0, 0);
+        imageView.setLayoutParams(params);
+        imageView.setPadding(0, 0, 0, 0);
+
+        layoutContainer.addView(imageView);
+    }
+
+    private void addLinkView(BusinessCardElement element) {
+        TextView linkView = new TextView(this);
+        linkView.setText(element.getHyperText());
+        linkView.setTextSize(element.getTextSize());
+        linkView.setTypeface(Typeface.create(element.getFontFamily(), Typeface.NORMAL));
+        linkView.setTextColor(element.getColorText());
+        linkView.setGravity(element.getAlignment());
+
+        if (element.isBold()) linkView.setTypeface(linkView.getTypeface(), Typeface.BOLD);
+        if (element.isItalic()) linkView.setTypeface(linkView.getTypeface(), Typeface.ITALIC);
+        if (element.isUnderline()) linkView.setPaintFlags(linkView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        if (element.isStrikethrough()) linkView.setPaintFlags(linkView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+
+        linkView.setOnClickListener(v -> {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Подтвердить действие")
+                    .setMessage("Вы уверены, что хотите перейти по ссылке: " + element.getLink() + "? Мы не обеспечиваем безопасность внешних ресурсов.")
+                    .setPositiveButton("Перейти", (dialog, which) -> {
+                        Intent intent = new Intent(Intent.ACTION_VIEW);
+                        intent.setData(Uri.parse(element.getLink()));
+                        startActivity(intent);
+                    })
+                    .setNegativeButton("Отмена", null)
+                    .show();
+        });
+
+        layoutContainer.addView(linkView);
+    }
+
+    private void addSocialMediaView(BusinessCardElement element) {
+        HorizontalScrollView scrollView = new HorizontalScrollView(this);
+        LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        );
+        scrollView.setLayoutParams(scrollParams);
+
+
+        LinearLayout socialLayout = new LinearLayout(this);
+        socialLayout.setOrientation(LinearLayout.HORIZONTAL);
+        socialLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+        ));
+        // Карта соответствий ссылки и иконки
+        Map<String, Integer> socialIcons = getSocialIconsMap();
+
+        if(element.getLinks() != null){
+            for (String link : element.getLinks()) {
+                ImageView icon = new ImageView(this);
+
+                // Определяем иконку по ссылке
+                int iconResId = getIconForLink(link, socialIcons);
+                icon.setImageResource(iconResId);
+
+                int size = (int) TypedValue.applyDimension(
+                        TypedValue.COMPLEX_UNIT_DIP,
+                        48, // Размер в dp
+                        getResources().getDisplayMetrics()
+                );
+                LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(size, size);
+                iconParams.setMargins(16, 16, 16, 16);
+                icon.setLayoutParams(iconParams);
+
+                icon.setOnClickListener(v -> {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(link));
+                    startActivity(intent);
+                });
+
+                socialLayout.addView(icon);
+            }
+        }
+
+        scrollView.addView(socialLayout);
+
+        layoutContainer.addView(scrollView);
+    }
+
+    private int getIconForLink(String link, Map<String, Integer> socialIcons) {
+        for (Map.Entry<String, Integer> entry : socialIcons.entrySet()) {
+            if (link.startsWith(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
+        return R.drawable.placeholder_image; // Если нет совпадения, используем заглушку
+    }
+
+    private Map<String, Integer> getSocialIconsMap() {
+        Map<String, Integer> map = new HashMap<>();
+        map.put("https://wa.me/", R.drawable.whatsapp);
+        map.put("https://vk.com/", R.drawable.vk);
+        map.put("https://viber.click/", R.drawable.viber);
+        map.put("https://t.me/", R.drawable.telegram);
+        map.put("https://instagram.com/", R.drawable.instagram);
+        map.put("https://facebook.com/", R.drawable.facebook);
+        map.put("https://snapchat.com/add/", R.drawable.snapchat);
+        map.put("https://linkedin.com/in/", R.drawable.linkedin);
+        map.put("https://ok.ru/profile/", R.drawable.ok);
+        map.put("https://figma.com/@", R.drawable.figma);
+        map.put("https://dribbble.com/", R.drawable.dribbble);
+        map.put("https://www.tiktok.com/@", R.drawable.tiktok);
+        map.put("https://discord.com/users/", R.drawable.discord);
+        map.put("skype:", R.drawable.skype);
+        map.put("https://www.epicgames.com/id/", R.drawable.epicgames);
+        map.put("https://open.spotify.com/user/", R.drawable.spotify);
+        map.put("https://steamcommunity.com/id/", R.drawable.steam);
+        return map;
+    }
+
+    private void addPhoneView(BusinessCardElement element) {
+        TextView phoneView = new TextView(this);
+        phoneView.setText(element.getText());
+        phoneView.setTextSize(element.getTextSize());
+        phoneView.setTypeface(Typeface.create(element.getFontFamily(), Typeface.NORMAL));
+        phoneView.setTextColor(element.getColorText());
+        phoneView.setGravity(element.getAlignment());
+
+        if (element.isBold()) phoneView.setTypeface(phoneView.getTypeface(), Typeface.BOLD);
+        if (element.isItalic()) phoneView.setTypeface(phoneView.getTypeface(), Typeface.ITALIC);
+        if (element.isUnderline()) phoneView.setPaintFlags(phoneView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        if (element.isStrikethrough()) phoneView.setPaintFlags(phoneView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+
+        phoneView.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_DIAL);
+            intent.setData(Uri.parse("tel:" + element.getText()));
+            startActivity(intent);
+        });
+
+        layoutContainer.addView(phoneView);
+    }
+
+    private void addEmailView(BusinessCardElement element) {
+        TextView emailView = new TextView(this);
+        emailView.setText(element.getText());
+        emailView.setTextSize(element.getTextSize());
+        emailView.setTypeface(Typeface.create(element.getFontFamily(), Typeface.NORMAL));
+        emailView.setTextColor(element.getColorText());
+        emailView.setGravity(element.getAlignment());
+
+        if (element.isBold()) emailView.setTypeface(emailView.getTypeface(), Typeface.BOLD);
+        if (element.isItalic()) emailView.setTypeface(emailView.getTypeface(), Typeface.ITALIC);
+        if (element.isUnderline()) emailView.setPaintFlags(emailView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
+        if (element.isStrikethrough()) emailView.setPaintFlags(emailView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+
+        emailView.setOnClickListener(v -> {
+            Intent intent = new Intent(Intent.ACTION_SENDTO);
+            intent.setData(Uri.parse("mailto:" + element.getText()));
+            startActivity(intent);
+        });
+
+        layoutContainer.addView(emailView);
     }
 
     private void setupAlignmentButtons(ImageButton[] alignmentButtons, int[] selectedAlignment) {
-        // По умолчанию активируем кнопку выравнивания по левому краю
+        // По умолчанию активируем кнопку выравнивания, соответствующую текущему выбранному значению
         for (ImageButton button : alignmentButtons) {
-            if (button.getId() == alignmentButtons[0].getId()) {
+            boolean isSelected = false;
+            // Проверяем выравнивание и выбираем соответствующую кнопку
+            if (button.getId() == alignmentButtons[0].getId() && selectedAlignment[0] == Gravity.START) {
+                isSelected = true;
+            } else if (button.getId() == alignmentButtons[1].getId() && selectedAlignment[0] == Gravity.CENTER) {
+                isSelected = true;
+            } else if (button.getId() == alignmentButtons[2].getId() && selectedAlignment[0] == Gravity.END) {
+                isSelected = true;
+            } else if (button.getId() == alignmentButtons[3].getId() && selectedAlignment[0] == Gravity.FILL_HORIZONTAL) {
+                isSelected = true;
+            }
+
+            // Обновляем визуальное состояние кнопки в зависимости от выбранного выравнивания
+            if (isSelected) {
                 button.setSelected(true);
                 button.setBackgroundResource(R.drawable.bg_icon_selected);
-                selectedAlignment[0] = Gravity.START; // Устанавливаем значение по умолчанию
             } else {
                 button.setSelected(false);
                 button.setBackgroundResource(android.R.color.transparent);
@@ -290,6 +663,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
                     .initialColor(selectedTextColor)
                     .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
                     .density(12)
+                    .showAlphaSlider(false) // Отключаем выбор прозрачности
                     .setOnColorSelectedListener(new OnColorSelectedListener() {
                         @Override
                         public void onColorSelected(int selectedColor) {
@@ -314,6 +688,9 @@ public class TemplateEditorActivity extends AppCompatActivity {
     }
 
     private void setupButtonToggle(ImageButton button) {
+        if(button.isSelected()){
+            button.setBackgroundResource(R.drawable.bg_icon_selected);
+        }
         button.setOnClickListener(v -> {
             // Проверка текущего состояния
             boolean isSelected = button.isSelected();
@@ -348,9 +725,25 @@ public class TemplateEditorActivity extends AppCompatActivity {
         });
     }
 
+    // Вспомогательные методы для поиска позиций в спиннерах
+    private int getFontPosition(String font, Spinner fontFamilySpinner) {
+        ArrayAdapter adapter = (ArrayAdapter) fontFamilySpinner.getAdapter();
+        return Math.max(adapter.getPosition(font), 0);
+    }
+
+    private int getSizePosition(int size, Spinner fontSizeSpinner) {
+        for (int i = 0; i < fontSizeSpinner.getCount(); i++) {
+            if (Integer.parseInt(fontSizeSpinner.getItemAtPosition(i).toString()) == size) {
+                return i;
+            }
+        }
+        return 0;
+    }
+
 
     // ------------------ Image ---------------------------
 
+    // TODO: При выборе источника камера фотка добавляется с гигантскими отступами
 
     private void openImagePicker() {
         // Создаем диалог
@@ -431,35 +824,31 @@ public class TemplateEditorActivity extends AppCompatActivity {
         super.onActivityResult(requestCode, resultCode, data);
 
         if (resultCode == RESULT_OK) {
-            if (requestCode == REQUEST_CAMERA) {
-                // Камера сделала фото, теперь редактируем его
-                if (photoUri != null) {
-                    imageRedactor(photoUri);  // Передаем URI фото в редактор
-                }
+            if (requestCode == REQUEST_CAMERA && photoUri != null) {
+                compressAndEditImage(photoUri);
             } else if (requestCode == REQUEST_GALLERY && data != null) {
-                // Пользователь выбрал фото из галереи
                 Uri selectedImage = data.getData();
                 if (selectedImage != null) {
-                    imageRedactor(selectedImage);  // Передаем URI выбранного фото в редактор
+                    compressAndEditImage(selectedImage);
                 }
-            } else if (requestCode == UCrop.REQUEST_CROP) {
-                // Если результат редактирования изображения (из UCrop)
-                if (data != null) {
-                    Uri croppedImageUri = UCrop.getOutput(data); // Получаем URI обрезанного изображения
-                    if (croppedImageUri != null) {
-                        // Добавляем изображение в LinearLayout
-                        addImageElement(croppedImageUri);
+            } else if (requestCode == UCrop.REQUEST_CROP && data != null) {
+                Uri croppedImageUri = UCrop.getOutput(data);
+                if (croppedImageUri != null) {
+                    if (editExistedImage) {
+                        uploadImageToFirebase(croppedImageUri, posistionEditedImage);
                     } else {
-                        Toast.makeText(this, "Не удалось получить редактированное изображение", Toast.LENGTH_SHORT).show();
+                        addImageElement(croppedImageUri);
                     }
+                } else {
+                    Toast.makeText(this, "Не удалось получить редактированное изображение", Toast.LENGTH_SHORT).show();
                 }
             }
-        } else {
-            // Если ошибка при съемке или выборе
-            if (resultCode == RESULT_CANCELED) {
-                Toast.makeText(this, "Фото не было сделано или выбрано", Toast.LENGTH_SHORT).show();
-            }
+        } else if (resultCode == RESULT_CANCELED) {
+            Toast.makeText(this, "Фото не было сделано или выбрано", Toast.LENGTH_SHORT).show();
         }
+
+        posistionEditedImage = -1;
+        editExistedImage = false;
     }
 
     private void imageRedactor(Uri sourceUri) {
@@ -470,7 +859,37 @@ public class TemplateEditorActivity extends AppCompatActivity {
         options.setActiveControlsWidgetColor(ContextCompat.getColor(this, R.color.main));
         UCrop.of(sourceUri, destinationUri)
                 .withOptions(options)
+                .withMaxResultSize(1080,1080)
                 .start(this);
+    }
+
+    private void compressAndEditImage(Uri sourceUri) {
+        try {
+            Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), sourceUri);
+            int maxSize = 1080;
+            Bitmap resizedBitmap = resizeBitmap(bitmap, maxSize, maxSize);
+            Uri resizedUri = saveBitmapToCache(resizedBitmap);
+            imageRedactor(resizedUri);
+        } catch (IOException e) {
+            e.printStackTrace();
+            imageRedactor(sourceUri); // Если ошибка, передаем оригинал
+        }
+    }
+
+    private Bitmap resizeBitmap(Bitmap bitmap, int maxWidth, int maxHeight) {
+        int width = bitmap.getWidth();
+        int height = bitmap.getHeight();
+        float scale = Math.min((float) maxWidth / width, (float) maxHeight / height);
+        return Bitmap.createScaledBitmap(bitmap, (int) (width * scale), (int) (height * scale), true);
+    }
+
+    private Uri saveBitmapToCache(Bitmap bitmap) throws IOException {
+        File cacheFile = new File(getCacheDir(), "compressed.jpg");
+        FileOutputStream out = new FileOutputStream(cacheFile);
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out);
+        out.flush();
+        out.close();
+        return Uri.fromFile(cacheFile);
     }
 
     private void addImageElement(Uri imageUri) {
@@ -482,9 +901,82 @@ public class TemplateEditorActivity extends AppCompatActivity {
         ));
         layoutContainer.addView(imageView); // Добавляем ImageView в LinearLayout
 
-        addImageElementToJSON(imageUri);
+        uploadImageToFirebase(imageUri);
     }
 
+    private void uploadImageToFirebase(Uri imageUri) {
+        if (imageUri == null) return;
+
+        // Генерируем уникальное имя файла
+        String fileName = "images/" + UUID.randomUUID().toString() + ".jpg";
+
+        // Ссылка на Firebase Storage
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference().child(fileName);
+
+        // Загружаем изображение
+        storageRef.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    // Получаем URL загруженного изображения
+                    storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        String imageUrl = uri.toString();
+                        addImageElementToJSON(imageUrl); // Сохраняем в JSON URL вместо локального URI
+                    });
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show()
+                );
+    }
+
+    private void uploadImageToFirebase(Uri imageUri, int position) {
+        BusinessCardElement element = businessCardElements.get(position);
+
+        if (imageUri == null) return;
+
+        // Генерируем уникальное имя файла
+        String fileName = "images/" + UUID.randomUUID().toString() + ".jpg";
+
+        // Ссылка на Firebase Storage
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference().child(fileName);
+
+        // Загружаем изображение
+        storageRef.putFile(imageUri)
+                .addOnSuccessListener(taskSnapshot -> {
+                    // Получаем URL загруженного изображения
+                    storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        deleteImageFromFirebase(element.getImageUrl());
+                        String imageUrlNew = uri.toString();
+                        element.setImageUrl(imageUrlNew);
+
+                        adapter.notifyItemChanged(position);
+                        refreshLayout();
+                    });
+                })
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Ошибка загрузки изображения", Toast.LENGTH_SHORT).show()
+                );
+    }
+
+    private void editImageElement(int posistion){
+        BusinessCardElement element = businessCardElements.get(posistion);
+
+        Uri uri = Uri.parse(element.getImageUrl());
+
+        posistionEditedImage = posistion;
+        editExistedImage = true;
+        imageRedactor(uri);
+    }
+
+    private void deleteImageFromFirebase(String imageUrl) {
+        if (imageUrl == null || imageUrl.isEmpty()) {
+            Toast.makeText(this, "Ссылка на изображение отсутствует", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        FirebaseStorage storage = FirebaseStorage.getInstance();
+        StorageReference imageRef = storage.getReferenceFromUrl(imageUrl);
+
+        imageRef.delete();
+    }
 
     // ------------------ Text ---------------------------
 
@@ -547,6 +1039,91 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
             Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
             positiveButton.setTextColor(ContextCompat.getColor(this, R.color.text));  // Устанавливаем цвет текста для кнопки "Добавить"
+        });
+
+        dialog.show();
+    }
+
+    private void editTextElement(int position) {
+        BusinessCardElement element = businessCardElements.get(position);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_text, null);
+
+        // Инициализация элементов
+        EditText contentInput = dialogView.findViewById(R.id.text_content_input);
+        Spinner fontFamilySpinner = dialogView.findViewById(R.id.font_family_spinner);
+        Spinner fontSizeSpinner = dialogView.findViewById(R.id.spinner_text_size);
+        Button colorPickerButton = dialogView.findViewById(R.id.color_picker_button);
+        ImageButton btnBold = dialogView.findViewById(R.id.style_bold);
+        ImageButton btnItalic = dialogView.findViewById(R.id.style_italic);
+        ImageButton btnUnderline = dialogView.findViewById(R.id.style_underline);
+        ImageButton btnStrikethrough = dialogView.findViewById(R.id.style_strikethrough);
+        ImageButton alignLeft = dialogView.findViewById(R.id.align_left);
+        ImageButton alignCenter = dialogView.findViewById(R.id.align_center);
+        ImageButton alignRight = dialogView.findViewById(R.id.align_right);
+        ImageButton alignJustify = dialogView.findViewById(R.id.align_justify);
+        View selectedColorPreview = dialogView.findViewById(R.id.color_picker_preview);
+
+        // Заполняем текущими значениями элемента
+        contentInput.setText(element.getText());
+        selectedTextColor = element.getColorText();
+        selectedTextSize = element.getTextSize();
+        selectedAlignment[0] = element.getAlignment();
+
+        // Установка стилей
+        btnBold.setSelected(element.isBold());
+        btnItalic.setSelected(element.isItalic());
+        btnUnderline.setSelected(element.isUnderline());
+        btnStrikethrough.setSelected(element.isStrikethrough());
+
+        // Установка обработчиков
+        setupButtonToggle(btnBold);
+        setupButtonToggle(btnItalic);
+        setupButtonToggle(btnUnderline);
+        setupButtonToggle(btnStrikethrough);
+        setupFontSizeSpinners(fontSizeSpinner);
+        setupFontFamilySpinner(fontFamilySpinner);
+        setupColorPicker(colorPickerButton, selectedColorPreview);
+
+        // Установка выравнивания
+        setupAlignmentButtons(new ImageButton[]{alignLeft, alignCenter, alignRight, alignJustify}, selectedAlignment);
+
+        // Установка текущего цвета
+        selectedColorPreview.setBackgroundColor(selectedTextColor);
+
+        // Установка шрифта и размера
+        fontFamilySpinner.setSelection(getFontPosition(element.getFontFamily(), fontFamilySpinner));
+        fontSizeSpinner.setSelection(getSizePosition(element.getTextSize(), fontSizeSpinner));
+
+        AlertDialog dialog = builder.setView(dialogView)
+                .setTitle("Редактирование текста")
+                .setPositiveButton("Сохранить", (s, which) -> {
+                    // Обновляем элемент
+                    element.setText(contentInput.getText().toString());
+                    element.setTextSize(selectedTextSize);
+                    element.setFontFamily(fontFamilySpinner.getSelectedItem().toString());
+                    element.setColorText(selectedTextColor);
+                    element.setBold(btnBold.isSelected());
+                    element.setItalic(btnItalic.isSelected());
+                    element.setUnderline(btnUnderline.isSelected());
+                    element.setStrikethrough(btnStrikethrough.isSelected());
+                    element.setAlignment(selectedAlignment[0]);
+
+                    // Обновляем отображение
+                    adapter.notifyItemChanged(position);
+                    refreshLayout();
+                })
+                .setNegativeButton("Отменить", null)
+                .create();
+
+        // Меняем цвет текста на кнопках
+        dialog.setOnShowListener(dialogInterface -> {
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.text));
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.text));
         });
 
         dialog.show();
@@ -699,6 +1276,165 @@ public class TemplateEditorActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private void editPhoneElement(int position) {
+        BusinessCardElement element = businessCardElements.get(position);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_phone, null);
+
+        EditText phoneInput = dialogView.findViewById(R.id.phone_input);
+        Spinner countrySpinner = dialogView.findViewById(R.id.country_spinner);
+        Spinner fontFamilySpinner = dialogView.findViewById(R.id.phone_font_family_spinner);
+        Spinner fontSizeSpinner = dialogView.findViewById(R.id.phone_spinner_text_size);
+        Button colorPickerButton = dialogView.findViewById(R.id.phone_color_picker_button);
+        ImageButton btnBold = dialogView.findViewById(R.id.phone_style_bold);
+        ImageButton btnItalic = dialogView.findViewById(R.id.phone_style_italic);
+        ImageButton btnUnderline = dialogView.findViewById(R.id.phone_style_underline);
+        ImageButton btnStrikethrough = dialogView.findViewById(R.id.phone_style_strikethrough);
+        ImageButton alignLeft = dialogView.findViewById(R.id.phone_align_left);
+        ImageButton alignCenter = dialogView.findViewById(R.id.phone_align_center);
+        ImageButton alignRight = dialogView.findViewById(R.id.phone_align_right);
+        ImageButton alignJustify = dialogView.findViewById(R.id.phone_align_justify);
+        View selectedColorPreview = dialogView.findViewById(R.id.phone_color_picker_preview);
+
+        // Заполняем текущими значениями элемента
+        phoneInput.setText(element.getText());
+        selectedTextColor = element.getColorText();
+        selectedTextSize = element.getTextSize();
+        selectedAlignment[0] = element.getAlignment();
+
+        // Парсинг номера
+        String fullPhoneNumber = element.getText();
+        String countryCode = "";
+        String localNumber = "";
+        String longestPrefix = "";
+
+        for (Map.Entry<String, String> entry : PHONE_CODES.entrySet()) {
+            String code = entry.getValue();
+            if (fullPhoneNumber.startsWith(code) && code.length() > longestPrefix.length()) {
+                longestPrefix = code;
+                countryCode = entry.getKey();
+                localNumber = fullPhoneNumber.substring(code.length());
+            }
+        }
+
+        // Настройка спиннера стран
+        List<Country> countries = CountryManager.getCountries();
+        CountryAdapter countryAdapter = new CountryAdapter(this, countries);
+        countrySpinner.setAdapter(countryAdapter);
+
+        int countryPosition = 0;
+        for (int i = 0; i < countries.size(); i++) {
+            if (countries.get(i).getAlpha2().equals(countryCode)) {
+                countryPosition = i;
+                break;
+            }
+        }
+        countrySpinner.setSelection(countryPosition);
+
+        phoneInput.setText(localNumber);
+
+        // Установка стилей
+        btnBold.setSelected(element.isBold());
+        btnItalic.setSelected(element.isItalic());
+        btnUnderline.setSelected(element.isUnderline());
+        btnStrikethrough.setSelected(element.isStrikethrough());
+
+        // Установка обработчиков
+        setupButtonToggle(btnBold);
+        setupButtonToggle(btnItalic);
+        setupButtonToggle(btnUnderline);
+        setupButtonToggle(btnStrikethrough);
+        setupFontSizeSpinners(fontSizeSpinner);
+        setupFontFamilySpinner(fontFamilySpinner);
+        setupColorPicker(colorPickerButton, selectedColorPreview);
+
+        // Установка выравнивания
+        setupAlignmentButtons(new ImageButton[]{alignLeft, alignCenter, alignRight, alignJustify}, selectedAlignment);
+
+        // Установка шрифта и размера
+        fontFamilySpinner.setSelection(getFontPosition(element.getFontFamily(), fontFamilySpinner));
+        fontSizeSpinner.setSelection(getSizePosition(element.getTextSize(), fontSizeSpinner));
+
+        selectedColorPreview.setBackgroundColor(selectedTextColor);
+
+        // Добавление TextWatcher для форматирования номера телефона
+        phoneInput.addTextChangedListener(new TextWatcher() {
+            private boolean isFormatting; // Флаг для предотвращения зацикливания
+            private final StringBuilder formatted = new StringBuilder();
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (isFormatting) return;
+
+                isFormatting = true;
+
+                String rawInput = s.toString().replaceAll("\\s+", ""); // Убираем пробелы
+                formatted.setLength(0);
+
+                int length = rawInput.length();
+                for (int i = 0; i < length; i++) {
+                    if (i == 2 || i == 5 || i == 7 || i == 9) {
+                        formatted.append(" ");
+                    }
+                    formatted.append(rawInput.charAt(i));
+                }
+
+                phoneInput.setText(formatted.toString());
+                phoneInput.setSelection(formatted.length()); // Устанавливаем курсор в конец
+                isFormatting = false;
+            }
+        });
+
+        AlertDialog dialog = builder.setView(dialogView)
+                .setTitle("Изменить номер телефона")
+                .setNegativeButton("Отмена", null)
+                .setPositiveButton("Сохранить", null)
+                .create();
+
+        dialog.setOnShowListener(dialogInterface -> {
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.text));
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setOnClickListener(view -> {
+                String phone = phoneInput.getText().toString().replaceAll("\\s+", ""); // Убираем пробелы для проверки
+                Country selectedCountry = (Country) countrySpinner.getSelectedItem();
+                String code = selectedCountry.getAlpha2();
+
+                if (isValidPhoneNumber(phone, code)) {
+                    element.setText(PHONE_CODES.get(code) + phone);
+                    element.setTextSize(selectedTextSize);
+                    element.setFontFamily(fontFamilySpinner.getSelectedItem().toString());
+                    element.setColorText(selectedTextColor);
+                    element.setBold(btnBold.isSelected());
+                    element.setItalic(btnItalic.isSelected());
+                    element.setUnderline(btnUnderline.isSelected());
+                    element.setStrikethrough(btnStrikethrough.isSelected());
+                    element.setAlignment(selectedAlignment[0]);
+
+                    // Обновляем отображение
+                    adapter.notifyItemChanged(position);
+                    refreshLayout();
+
+                    dialog.dismiss();
+                } else {
+                    phoneInput.setError("Неверный номер телефона");
+                    Toast.makeText(this, "Неверный номер телефона", Toast.LENGTH_SHORT).show();
+                }
+            });
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.text));
+        });
+
+        dialog.show();
+    }
+
     private boolean isValidPhoneNumber(String phone, String countryCode) {
         PhoneNumberUtil phoneNumberUtil = PhoneNumberUtil.getInstance(this);
 
@@ -824,6 +1560,105 @@ public class TemplateEditorActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private void editEmailElement(int position) {
+        BusinessCardElement element = businessCardElements.get(position);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_email, null);
+
+        EditText emailInput = dialogView.findViewById(R.id.email_input);
+        Spinner fontFamilySpinner = dialogView.findViewById(R.id.email_font_family_spinner);
+        Spinner fontSizeSpinner = dialogView.findViewById(R.id.email_spinner_text_size);
+        Button colorPickerButton = dialogView.findViewById(R.id.email_color_picker_button);
+        ImageButton btnBold = dialogView.findViewById(R.id.email_style_bold);
+        ImageButton btnItalic = dialogView.findViewById(R.id.email_style_italic);
+        ImageButton btnUnderline = dialogView.findViewById(R.id.email_style_underline);
+        ImageButton btnStrikethrough = dialogView.findViewById(R.id.email_style_strikethrough);
+        ImageButton alignLeft = dialogView.findViewById(R.id.email_align_left);
+        ImageButton alignCenter = dialogView.findViewById(R.id.email_align_center);
+        ImageButton alignRight = dialogView.findViewById(R.id.email_align_right);
+        ImageButton alignJustify = dialogView.findViewById(R.id.email_align_justify);
+        View selectedColorPreview = dialogView.findViewById(R.id.email_color_picker_preview);
+
+        // Заполняем текущими значениями элемента
+        emailInput.setText(element.getText());
+        selectedTextColor = element.getColorText();
+        selectedTextSize = element.getTextSize();
+        selectedAlignment[0] = element.getAlignment();
+
+        // Установка стилей
+        btnBold.setSelected(element.isBold());
+        btnItalic.setSelected(element.isItalic());
+        btnUnderline.setSelected(element.isUnderline());
+        btnStrikethrough.setSelected(element.isStrikethrough());
+
+        // Установка обработчиков
+        setupButtonToggle(btnBold);
+        setupButtonToggle(btnItalic);
+        setupButtonToggle(btnUnderline);
+        setupButtonToggle(btnStrikethrough);
+        setupFontSizeSpinners(fontSizeSpinner);
+        setupFontFamilySpinner(fontFamilySpinner);
+        setupColorPicker(colorPickerButton, selectedColorPreview);
+
+        // Настройка кнопок выравнивания
+        setupAlignmentButtons(new ImageButton[]{alignLeft, alignCenter, alignRight, alignJustify}, selectedAlignment);
+
+        // Установка шрифта и размера
+        fontFamilySpinner.setSelection(getFontPosition(element.getFontFamily(), fontFamilySpinner));
+        fontSizeSpinner.setSelection(getSizePosition(element.getTextSize(), fontSizeSpinner));
+
+        selectedColorPreview.setBackgroundColor(selectedTextColor);
+
+        if(FirebaseAuth.getInstance().getCurrentUser().getEmail() != null) emailInput.setText(FirebaseAuth.getInstance().getCurrentUser().getEmail());
+
+        AlertDialog dialog = builder.setView(dialogView)
+                .setTitle("Изменить электронную почту")
+                .setPositiveButton("Сохранить", null)
+                .setNegativeButton("Отмена", null)
+                .create();
+
+        // Меняем цвет текста на кнопках
+        dialog.setOnShowListener(dialogInterface -> {
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.text));  // Устанавливаем цвет текста для кнопки "Отменить"
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setOnClickListener(view -> {
+                String email = emailInput.getText().toString();
+
+                String emailRegex = "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$";
+                Pattern pattern = Pattern.compile(emailRegex);
+                Matcher matcher = pattern.matcher(email);
+
+                // Валидация номера телефона
+                if (matcher.matches()) {
+                    element.setText(emailInput.getText().toString());
+                    element.setTextSize(selectedTextSize);
+                    element.setFontFamily(fontFamilySpinner.getSelectedItem().toString());
+                    element.setColorText(selectedTextColor);
+                    element.setBold(btnBold.isSelected());
+                    element.setItalic(btnItalic.isSelected());
+                    element.setUnderline(btnUnderline.isSelected());
+                    element.setStrikethrough(btnStrikethrough.isSelected());
+                    element.setAlignment(selectedAlignment[0]);
+
+                    // Обновляем отображение
+                    adapter.notifyItemChanged(position);
+                    refreshLayout();
+
+                    dialog.dismiss();
+                } else {
+                    emailInput.setError("Неверный адрес электронной почты");
+                    Toast.makeText(this, "Неверный адрес электронной почты", Toast.LENGTH_SHORT).show();
+                }
+            });
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.text));  // Устанавливаем цвет текста для кнопки "Добавить"
+        });
+
+        dialog.show();
+    }
+
     private void addEmailElement(String email, int textSize, String fontFamily, int colorText, boolean isBold, boolean isItalic, boolean isUnderline, boolean isStrikethrough,
                                  int alignment) {
         TextView emailView = new TextView(this);
@@ -857,6 +1692,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
 
         addEmailElementToJSON(email, textSize, fontFamily, colorText, isBold, isItalic, isUnderline, isStrikethrough, alignment);
+
     }
 
 
@@ -974,6 +1810,151 @@ public class TemplateEditorActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private void editLinkElement(int position) {
+        BusinessCardElement element = businessCardElements.get(position);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_link, null);
+
+        Switch hyperLink = dialogView.findViewById(R.id.link_type_switch);
+        EditText linkInput = dialogView.findViewById(R.id.link_input);
+        EditText hyperLinkInput = dialogView.findViewById(R.id.hypertext_input);
+        Spinner fontFamilySpinner = dialogView.findViewById(R.id.link_font_family_spinner);
+        Spinner fontSizeSpinner = dialogView.findViewById(R.id.link_spinner_text_size);
+        Button colorPickerButton = dialogView.findViewById(R.id.link_color_picker_button);
+        ImageButton btnBold = dialogView.findViewById(R.id.link_style_bold);
+        ImageButton btnItalic = dialogView.findViewById(R.id.link_style_italic);
+        ImageButton btnUnderline = dialogView.findViewById(R.id.link_style_underline);
+        ImageButton btnStrikethrough = dialogView.findViewById(R.id.link_style_strikethrough);
+        ImageButton alignLeft = dialogView.findViewById(R.id.link_align_left);
+        ImageButton alignCenter = dialogView.findViewById(R.id.link_align_center);
+        ImageButton alignRight = dialogView.findViewById(R.id.link_align_right);
+        ImageButton alignJustify = dialogView.findViewById(R.id.link_align_justify);
+        View selectedColorPreview = dialogView.findViewById(R.id.link_color_picker_preview);
+
+        // Заполняем текущими значениями элемента
+        linkInput.setText(element.getLink());
+        hyperLinkInput.setText(element.getHyperText());
+        if(element.getLink() != element.getHyperText()){
+            hyperLink.setChecked(true);
+            hyperLinkInput.setVisibility(View.VISIBLE);
+        }
+        selectedTextColor = element.getColorText();
+        selectedTextSize = element.getTextSize();
+        selectedAlignment[0] = element.getAlignment();
+
+        // Установка обработчиков
+        setupButtonToggle(btnBold);
+        setupButtonToggle(btnItalic);
+        setupButtonToggle(btnUnderline);
+        setupButtonToggle(btnStrikethrough);
+        setupFontSizeSpinners(fontSizeSpinner);
+        setupFontFamilySpinner(fontFamilySpinner);
+        setupColorPicker(colorPickerButton, selectedColorPreview);
+
+        // Настройка кнопок выравнивания
+        setupAlignmentButtons(new ImageButton[]{alignLeft, alignCenter, alignRight, alignJustify}, selectedAlignment);
+
+        // Установка шрифта и размера
+        fontFamilySpinner.setSelection(getFontPosition(element.getFontFamily(), fontFamilySpinner));
+        fontSizeSpinner.setSelection(getSizePosition(element.getTextSize(), fontSizeSpinner));
+
+        selectedColorPreview.setBackgroundColor(selectedTextColor);
+
+        hyperLink.setOnClickListener(v -> {
+            // Используем isChecked() для проверки состояния Switch
+            if (hyperLink.isChecked()) {
+                hyperLinkInput.setVisibility(View.VISIBLE);  // Показываем поле для гипертекста
+            } else {
+                hyperLinkInput.setVisibility(View.GONE);  // Скрываем поле для гипертекста
+            }
+        });
+
+
+        AlertDialog dialog =  builder.setView(dialogView)
+                .setTitle("Изменить ссылку")
+                .setPositiveButton("Сохранить", null)
+                .setNegativeButton("Отмена", null)
+                .create();
+
+        // Меняем цвет текста на кнопках
+        dialog.setOnShowListener(dialogInterface -> {
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.text));  // Устанавливаем цвет текста для кнопки "Отменить"
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setOnClickListener(view -> {
+                String link = linkInput.getText().toString();
+                String hyperText = hyperLinkInput.getText().toString();
+                boolean isHyperLink = hyperLink.isChecked();
+
+                // Проверка на пустые поля
+                if (isHyperLink) {
+                    if (link.isEmpty()) {
+                        linkInput.setError("Поле не должно быть пустым");
+                        Toast.makeText(this, "Поле ссылки не должно быть пустым", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                }
+
+                // Валидация ссылки
+                String urlRegex = "^(https?://)?[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}(/\\S*)?$";
+                Pattern pattern = Pattern.compile(urlRegex);
+                Matcher matcher = pattern.matcher(link);
+
+                if (!matcher.matches()) {
+                    linkInput.setError("Неверный формат ссылки");
+                    Toast.makeText(this, "Введите корректную ссылку", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // Если включен гипертекст, дополнительно проверяем текст ссылки
+                if (isHyperLink && hyperText.isEmpty()) {
+                    hyperLinkInput.setError("Поле текста не должно быть пустым");
+                    Toast.makeText(this, "Поле текста для гиперссылки не должно быть пустым", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
+                // Если все проверки прошли успешно
+                String fontFamily = fontFamilySpinner.getSelectedItem().toString();
+                if(isHyperLink){
+                    element.setLink(linkInput.getText().toString());
+                    element.setHyperText(hyperLinkInput.getText().toString());
+                    element.setTextSize(selectedTextSize);
+                    element.setFontFamily(fontFamilySpinner.getSelectedItem().toString());
+                    element.setColorText(selectedTextColor);
+                    element.setBold(btnBold.isSelected());
+                    element.setItalic(btnItalic.isSelected());
+                    element.setUnderline(btnUnderline.isSelected());
+                    element.setStrikethrough(btnStrikethrough.isSelected());
+                    element.setAlignment(selectedAlignment[0]);
+                }
+                else {
+                    element.setLink(linkInput.getText().toString());
+                    element.setHyperText(linkInput.getText().toString());
+                    element.setTextSize(selectedTextSize);
+                    element.setFontFamily(fontFamilySpinner.getSelectedItem().toString());
+                    element.setColorText(selectedTextColor);
+                    element.setBold(btnBold.isSelected());
+                    element.setItalic(btnItalic.isSelected());
+                    element.setUnderline(btnUnderline.isSelected());
+                    element.setStrikethrough(btnStrikethrough.isSelected());
+                    element.setAlignment(selectedAlignment[0]);
+                }
+                // Обновляем отображение
+                adapter.notifyItemChanged(position);
+                refreshLayout();
+
+                dialog.dismiss();
+
+            });
+
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.text));  // Устанавливаем цвет текста для кнопки "Добавить"
+        });
+
+        dialog.show();
+    }
+
     private void addLinkElement(String link, int textSize, String fontFamily, int colorText, boolean isBold, boolean isItalic, boolean isUnderline, boolean isStrikethrough,
                                 int alignment) {
         TextView linkView = new TextView(this);
@@ -1015,6 +1996,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         layoutContainer.addView(linkView);
 
         addLinkElementToJSON(link, textSize, fontFamily, colorText, isBold, isItalic, isUnderline, isStrikethrough, alignment);
+
     }
 
     private void addLinkElement(String link, String hyperText, int textSize, String fontFamily, int colorText, boolean isBold, boolean isItalic, boolean isUnderline,
@@ -1058,6 +2040,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         layoutContainer.addView(linkView);
 
         addLinkElementToJSON(link, hyperText, textSize, fontFamily, colorText, isBold, isItalic, isUnderline, isStrikethrough, alignment);
+
     }
 
 
@@ -1194,9 +2177,106 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
     }
 
+    private void setupRecyclerSocialMedia(RecyclerView recyclerView, BusinessCardElement element) {
+        List<SocialNetwork> socialNetworks = Arrays.asList(
+                new SocialNetwork("Ватсапп", R.drawable.whatsapp, "https://wa.me/{phone}"),
+                new SocialNetwork("ВКонтакте", R.drawable.vk, "https://vk.com/{username}"),
+                new SocialNetwork("Вайбер", R.drawable.viber, "https://viber.click/{phone}"),
+                new SocialNetwork("Телеграм", R.drawable.telegram, "https://t.me/{username}"),
+                new SocialNetwork("Инстаграм", R.drawable.instagram, "https://instagram.com/{username}"),
+                new SocialNetwork("Фейсбук", R.drawable.facebook, "https://facebook.com/{username}"),
+                new SocialNetwork("Снапчат", R.drawable.snapchat, "https://snapchat.com/add/{username}"),
+                new SocialNetwork("Линкедин", R.drawable.linkedin, "https://linkedin.com/in/{username}"),
+                new SocialNetwork("Одноклассники", R.drawable.ok, "https://ok.ru/profile/{username}"),
+                new SocialNetwork("Фигма", R.drawable.figma, "https://figma.com/@{username}"),
+                new SocialNetwork("Дрибл", R.drawable.dribbble, "https://dribbble.com/{username}"),
+                new SocialNetwork("ТикТок", R.drawable.tiktok, "https://www.tiktok.com/@{username}"),
+                new SocialNetwork("Дискорд", R.drawable.discord, "https://discord.com/users/{username}"),
+                new SocialNetwork("Скайп", R.drawable.skype, "skype:{username}?chat"),
+                new SocialNetwork("Эпик Геймс", R.drawable.epicgames, "https://www.epicgames.com/id/{username}"),
+                new SocialNetwork("Спотифай", R.drawable.spotify, "https://open.spotify.com/user/{username}"),
+                new SocialNetwork("Стим", R.drawable.steam, "https://steamcommunity.com/id/{username}")
+        );
+
+        // Заполняем соцсети из BusinessCardElement
+        for (String link : element.getLinks()) {
+            for (SocialNetwork network : socialNetworks) {
+                if (link.startsWith(network.getUrlTemplate().replace("{username}", "").replace("{phone}", ""))) {
+                    String placeholder = network.getUrlTemplate().contains("{phone}") ? "{phone}" : "{username}";
+                    String value = link.replace(network.getUrlTemplate().replace(placeholder, ""), "");
+                    network.setLink(link); // Устанавливаем сохранённую ссылку
+                    addedSocialMedia.add(network);
+                }
+            }
+        }
+
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        SocialNetworkAdapter adapter = new SocialNetworkAdapter(
+                this,
+                socialNetworks,
+                socialNetwork -> showInputDialog(socialNetwork) // Передаём объект SocialNetwork
+        );
+        recyclerView.setAdapter(adapter);
+    }
+
+    private void editSocialMediaElement(int position) {
+        BusinessCardElement element = businessCardElements.get(position);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_social_media, null);
+
+        RecyclerView recyclerView = dialogView.findViewById(R.id.recycler_social_media);
+
+        // Передаём текущие соцсети
+        setupRecyclerSocialMedia(recyclerView, element);
+
+        AlertDialog dialog = builder.setView(dialogView)
+                .setTitle("Редактировать ссылки")
+                .setPositiveButton("Сохранить", null)
+                .setNegativeButton("Отмена", null)
+                .create();
+
+        // Настраиваем кнопки
+        dialog.setOnShowListener(dialogInterface -> {
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.text));
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setOnClickListener(view -> {
+
+                if (addedSocialMedia != null && !addedSocialMedia.isEmpty()) {
+                    // Преобразуем список SocialNetwork в список строк (например, ссылки)
+                    List<String> socialNetworkLinks = new ArrayList<>();
+                    for (SocialNetwork socialNetwork : addedSocialMedia) {
+                        // Если ты хочешь хранить ссылки, используй getLink
+                        socialNetworkLinks.add(socialNetwork.getLink());
+                    }
+
+                    element.setLinks(socialNetworkLinks);
+
+                    Log.d("SocialNetworks", "Добавлены соцсети: " + socialNetworkLinks.toString());
+                } else {
+                    Log.d("SocialNetworks", "Нет социальных сетей для добавления");
+                }
+
+                addedSocialMedia.clear();
+
+                adapter.notifyItemChanged(position);
+                refreshLayout();
+
+                dialog.dismiss();
+            });
+
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.text));
+        });
+
+        dialog.show();
+    }
+
     private void addSocialMediaElement(List<SocialNetwork> addedSocialNetworks) {
         // Создаем ScrollView
-        ScrollView scrollView = new ScrollView(this);
+        HorizontalScrollView scrollView = new HorizontalScrollView(this);
         LinearLayout.LayoutParams scrollParams = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -1222,7 +2302,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
                     getResources().getDisplayMetrics()
             );
             LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(size, size);
-            iconParams.setMargins(16, 16, 16, 16);
+            iconParams.setMargins(16, 16, 24, 16);
             iconView.setLayoutParams(iconParams);
 
             // Устанавливаем клик-слушатель для иконки
@@ -1291,10 +2371,10 @@ public class TemplateEditorActivity extends AppCompatActivity {
     }
 
     // Функция для добавления изображения
-    private void addImageElementToJSON(Uri imageUri) {
+    private void addImageElementToJSON(String imageUrl) {
         BusinessCardElement element = new BusinessCardElement(
                 "image",
-                imageUri.toString() // Преобразуем Uri в строку для хранения
+                imageUrl  // Преобразуем Uri в строку для хранения
         );
         businessCardElements.add(element);
     }
@@ -1384,83 +2464,17 @@ public class TemplateEditorActivity extends AppCompatActivity {
         businessCardElements.add(element);
     }
 
-
-//    private JSONObject extractDataFromLayout(ViewGroup layout) {
-//        JSONObject json = new JSONObject();
-//        try {
-//            for (int i = 0; i < layout.getChildCount(); i++) {
-//                View child = layout.getChildAt(i);
-//
-//                if (child instanceof TextView) {
-//                    // Извлечение текста из TextView
-//                    TextView textView = (TextView) child;
-//                    json.put("text_" + i, textView.getText().toString());
-//
-//                } else if (child instanceof ImageView) {
-//                    // Обработка ImageView: добавляем тег, если он задан
-//                    ImageView imageView = (ImageView) child;
-//                    Drawable drawable = imageView.getDrawable();
-//                    if (drawable != null) {
-//                        json.put("image_" + i, "image_placeholder"); // Можно заменить на URL, если изображение уже загружено
-//                    }
-//
-//                } else if (child instanceof ScrollView) {
-//                    // Рекурсивно извлекаем данные из ScrollView
-//                    ScrollView scrollView = (ScrollView) child;
-//                    ViewGroup innerLayout = (ViewGroup) scrollView.getChildAt(0);
-//                    json.put("scrollView_" + i, extractDataFromLayout(innerLayout));
-//
-//                } else if (child instanceof ViewGroup) {
-//                    // Рекурсивно обрабатываем вложенные макеты
-//                    ViewGroup group = (ViewGroup) child;
-//                    json.put("layout_" + i, extractDataFromLayout(group));
-//                }
-//            }
-//        } catch (JSONException e) {
-//            Log.e("JSON", "Error creating JSON", e);
-//        }
-//        return json;
-//    }
-//
-//    public void saveJsonWithMetadata(JSONObject json) {
-//        // Генерация уникального идентификатора
-//        String documentId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
-//        String filePath = "business_cards/" + userId + "/json_" + documentId + ".json";
-//
-//        // Ссылка на Firebase Storage
-//        FirebaseStorage storage = FirebaseStorage.getInstance();
-//        StorageReference storageRef = storage.getReference().child(filePath);
-//
-//        try {
-//            // Преобразование JSON в байты
-//            String jsonString = json.toString();
-//            byte[] jsonData = jsonString.getBytes(StandardCharsets.UTF_8);
-//
-//            // Загрузка JSON в Firebase Storage
-//            UploadTask uploadTask = storageRef.putBytes(jsonData);
-//            uploadTask.addOnSuccessListener(taskSnapshot -> {
-//                storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
-//                    // После успешной загрузки файла создаем документ в Firestore
-//                    saveMetadataToFirestore(documentId, uri.toString());
-//                });
-//            }).addOnFailureListener(e -> {
-//                Log.e("Firebase", "Error uploading JSON", e);
-//            });
-//        } catch (Exception e) {
-//            Log.e("Firebase", "Error converting JSON to bytes", e);
-//        }
-//    }
-
     private void saveBusinessCardToFirebase() {
         // Преобразуем список элементов в JSON
         Gson gson = new Gson();
         String json = gson.toJson(businessCardElements);
 
+        if(cardId == null){
+            cardId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
+        }
 
         // Сохраняем JSON в Firebase Storage
-        String documentId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
-
-        String filePath = "business_cards/" + userId + "/json_" + documentId + ".json";
+        String filePath = "business_cards/" + userId + "/json_" + cardId + ".json";
 
         StorageReference storageRef = FirebaseStorage.getInstance().getReference().child(filePath);
         storageRef.putBytes(json.getBytes())
@@ -1468,7 +2482,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
                     Log.d("Firebase", "JSON успешно загружен.");
                     storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
                         // После успешной загрузки файла создаем документ в Firestore
-                        saveMetadataToFirestore(documentId, uri.toString());
+                        saveMetadataToFirestore(cardId, uri.toString());
                     });
                 })
                 .addOnFailureListener(e -> {
@@ -1492,10 +2506,395 @@ public class TemplateEditorActivity extends AppCompatActivity {
                 .set(metadata)
                 .addOnSuccessListener(aVoid -> {
                     Log.d("Firestore", "Metadata saved successfully with ID: " + documentId);
+                    Toast.makeText(this, "Визитка успешно сохранена", Toast.LENGTH_LONG).show();
                 })
                 .addOnFailureListener(e -> {
                     Log.e("Firestore", "Error saving metadata", e);
                 });
+    }
+
+
+    // ------------------ Update information ---------------------------
+
+
+    private void updateBusinessCardInFirebase(String documentId) {
+        // Преобразуем список элементов в JSON
+        Gson gson = new Gson();
+        String json = gson.toJson(businessCardElements);
+
+        // Путь к файлу в Firebase Storage
+        String filePath = "business_cards/" + userId + "/json_" + documentId + ".json";
+
+        // Ссылка на файл в Firebase Storage
+        StorageReference storageRef = FirebaseStorage.getInstance().getReference().child(filePath);
+
+        // Загружаем обновленный JSON
+        storageRef.putBytes(json.getBytes())
+                .addOnSuccessListener(taskSnapshot -> {
+                    Log.d("Firebase", "JSON успешно обновлен.");
+                    storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
+                        // После успешного обновления файла, обновляем метаданные в Firestore
+                        updateMetadataInFirestore(documentId, uri.toString());
+                    });
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("Firebase", "Ошибка обновления JSON: " + e.getMessage());
+                });
+    }
+
+    private void updateMetadataInFirestore(String documentId, String fileUrl) {
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        // Обновленные метаданные для документа
+        Map<String, Object> updatedMetadata = new HashMap<>();
+        updatedMetadata.put("file_url", fileUrl);
+        updatedMetadata.put("status", "обновлено"); // Можно обновить статус или другие поля
+
+        // Обновление метаданных в Firestore
+        db.collection("business_cards").document(documentId)
+                .update(updatedMetadata)
+                .addOnSuccessListener(aVoid -> {
+                    Log.d("Firestore", "Metadata updated successfully with ID: " + documentId);
+                    Toast.makeText(this, "Визитка успешно обновлена", Toast.LENGTH_LONG).show();
+                    Intent resultIntent = new Intent();
+                    setResult(RESULT_OK, resultIntent);
+                    finish(); // Закрываем `EditActivity`
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("Firestore", "Error updating metadata", e);
+                });
+    }
+
+
+    // ------------------ Export to PNG ---------------------------
+
+    private void prepareLayoutToExport(){
+        for (int i = 0; i < layoutContainer.getChildCount(); i++) {
+            View childView = layoutContainer.getChildAt(i);
+
+            if (childView instanceof HorizontalScrollView) {
+                childView.setVisibility(View.GONE);
+                List<String> links = businessCardElements.get(i).getLinks();
+                for (String link : links) {
+                    // Создаем новый TextView для отображения соцсети
+                    TextView textView1 = new TextView(this);
+
+                    // Находим название социальной сети по ссылке
+                    String socialNetworkName = getSocialNetworkNameByLink(link);
+                    textView1.setText(socialNetworkName + ": ");
+                    textView1.setTextSize(16);
+                    textView1.setTypeface(Typeface.create(getCustomFont("sans-serif"), Typeface.NORMAL));
+                    textView1.setGravity(Gravity.START);
+                    textView1.setTextColor(Color.BLACK);
+                    setContrastTextColor(textView1, mainLayout);
+
+                    // Создаем второй TextView для отображения самой ссылки
+                    TextView textView2 = new TextView(this);
+                    textView2.setText(link);
+                    textView2.setTextSize(16);
+                    textView2.setTypeface(Typeface.create(getCustomFont("sans-serif"), Typeface.NORMAL));
+                    textView2.setGravity(Gravity.START);
+                    setContrastTextColor(textView2, mainLayout);
+
+                    // Устанавливаем параметры для TextView
+                    textView1.setLayoutParams(new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                    textView2.setLayoutParams(new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+                    // Добавляем textView1 и textView2 в контейнер
+                    layoutContainer.addView(textView1);
+                    layoutContainer.addView(textView2);
+                }
+            }
+        }
+        // Обновляем layoutContainer перед созданием картинки
+        layoutContainer.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        layoutContainer.layout(0, 0, layoutContainer.getMeasuredWidth(), layoutContainer.getMeasuredHeight());
+
+
+        // Убедимся, что все элементы перерисованы
+        layoutContainer.requestLayout();
+        layoutContainer.invalidate();
+    }
+
+    private void exportBusinessCardAsImage() {
+        // Скрываем ScrollView
+
+        ImageView QRimage = new ImageView(this);
+        if(cardId == null){
+            cardId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
+        }
+
+        prepareLayoutToExport();
+
+        Bitmap QRbitmap = QRCodeGenerator.generateQRCode("https://easybizcard/" + userId + "/" + cardId);
+        QRimage.setImageBitmap(QRbitmap);
+        layoutContainer.addView(QRimage);
+
+        // Обновляем layoutContainer перед созданием картинки
+        layoutContainer.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        layoutContainer.layout(0, 0, layoutContainer.getMeasuredWidth(), layoutContainer.getMeasuredHeight());
+
+
+        // Убедимся, что все элементы перерисованы
+        layoutContainer.requestLayout();
+        layoutContainer.invalidate();
+
+        // Создаем Bitmap из layoutContainer с учетом фона mainLayout
+        Bitmap bitmap = getBitmapFromViewWithBackground(layoutContainer, mainLayout);
+
+        if (bitmap != null) {
+            try {
+                // Сохранение изображения
+                File file = saveBitmapToFile(bitmap);
+
+                if (file != null) {
+                    Toast.makeText(this, "Визитка сохранена: " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+                    refreshLayout();
+                    // Поделиться изображением
+                    shareImage(file);
+                } else {
+                    Toast.makeText(this, "Ошибка сохранения изображения", Toast.LENGTH_SHORT).show();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Ошибка экспорта: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private int getColorBrightness(int color) {
+        // Получаем компоненты RGB
+        int r = Color.red(color);
+        int g = Color.green(color);
+        int b = Color.blue(color);
+
+        // Применяем формулу для вычисления яркости
+        return (int) (0.2126 * r + 0.7152 * g + 0.0722 * b);
+    }
+
+    private void setContrastTextColor(TextView textView, View backgroundView) {
+        // Получаем цвет фона
+        int backgroundColor = ((ColorDrawable) backgroundView.getBackground()).getColor();
+
+        // Вычисляем яркость фона
+        int brightness = getColorBrightness(backgroundColor);
+
+        // Если яркость фона темная, делаем текст светлым, иначе темным
+        if (brightness < 128) {
+            textView.setTextColor(Color.WHITE);  // Белый для темного фона
+        } else {
+            textView.setTextColor(Color.BLACK);  // Черный для светлого фона
+        }
+    }
+
+    private String getSocialNetworkNameByLink(String link) {
+        List<SocialNetwork> socialNetworks = Arrays.asList(
+                new SocialNetwork("Ватсапп", R.drawable.whatsapp, "https://wa.me/{phone}"),
+                new SocialNetwork("ВКонтакте", R.drawable.vk, "https://vk.com/{username}"),
+                new SocialNetwork("Вайбер", R.drawable.viber, "https://viber.click/{phone}"),
+                new SocialNetwork("Телеграм", R.drawable.telegram, "https://t.me/{username}"),
+                new SocialNetwork("Инстаграм", R.drawable.instagram, "https://instagram.com/{username}"),
+                new SocialNetwork("Фейсбук", R.drawable.facebook, "https://facebook.com/{username}"),
+                new SocialNetwork("Снапчат", R.drawable.snapchat, "https://snapchat.com/add/{username}"),
+                new SocialNetwork("Линкедин", R.drawable.linkedin, "https://linkedin.com/in/{username}"),
+                new SocialNetwork("Одноклассники", R.drawable.ok, "https://ok.ru/profile/{username}"),
+                new SocialNetwork("Фигма", R.drawable.figma, "https://figma.com/@{username}"),
+                new SocialNetwork("Дрибл", R.drawable.dribbble, "https://dribbble.com/{username}"),
+                new SocialNetwork("ТикТок", R.drawable.tiktok, "https://www.tiktok.com/@{username}"),
+                new SocialNetwork("Дискорд", R.drawable.discord, "https://discord.com/users/{username}"),
+                new SocialNetwork("Скайп", R.drawable.skype, "skype:{username}?chat"),
+                new SocialNetwork("Эпик Геймс", R.drawable.epicgames, "https://www.epicgames.com/id/{username}"),
+                new SocialNetwork("Спотифай", R.drawable.spotify, "https://open.spotify.com/user/{username}"),
+                new SocialNetwork("Стим", R.drawable.steam, "https://steamcommunity.com/id/{username}")
+        );
+
+        for (SocialNetwork network : socialNetworks) {
+            // Проверяем, если ссылка соответствует шаблону
+            if (link.matches(network.getUrlTemplate().replace("{username}", ".*").replace("{phone}", ".*"))) {
+                return network.getName();  // Возвращаем имя соцсети, если совпало
+            }
+        }
+        return "Неизвестная сеть";  // Если соцсеть не найдена
+    }
+
+    private Bitmap getBitmapFromViewWithBackground(View view, View backgroundView) {
+        // Получаем цвет фона из mainLayout
+        int backgroundColor = ((ColorDrawable) backgroundView.getBackground()).getColor();
+
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(backgroundColor);  // Заполняем фон основным цветом
+
+        view.draw(canvas);
+        return bitmap;
+    }
+
+    private File saveBitmapToFile(Bitmap bitmap) throws IOException {
+        File directory = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "BusinessCards");
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+
+        String fileName = "business_card_" + System.currentTimeMillis() + ".png";
+        File file = new File(directory, fileName);
+
+        FileOutputStream fos = new FileOutputStream(file);
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+        fos.flush();
+        fos.close();
+
+        return file;
+    }
+
+    private void shareImage(File file) {
+        Uri uri = FileProvider.getUriForFile(this, "volosyuk.easybizcard.fileprovider", file);
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("image/png");
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(Intent.createChooser(intent, "Поделиться визиткой"));
+    }
+
+
+    // ------------------ Export to PDF ---------------------------
+
+    private void checkPermissionsAndGeneratePdf() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Для Android 11 и выше
+            // Просто генерируем PDF, без запроса дополнительных разрешений
+            generatePrintDocument();
+        } else {
+            // Для Android 10 и ниже проверяем обычное разрешение
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        REQUEST_WRITE_EXTERNAL_STORAGE);
+            } else {
+                generatePrintDocument(); // Разрешение получено, генерируем PDF
+            }
+        }
+    }
+
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                generatePrintDocument();
+            } else {
+                Toast.makeText(this, "Разрешение требуется для создания PDF", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void generatePrintDocument() {
+        // Подготовка данных для первой страницы
+        prepareLayoutToExport();
+
+        PdfDocument pdfDocument = new PdfDocument();
+
+        // Размеры визитки (85x55 мм)
+        int pageHeight = (int) (85 * MM_TO_POINTS);
+        int pageWidth = (int) (55 * MM_TO_POINTS);
+
+        // Страница 1: Информация
+        PdfDocument.PageInfo pageInfo1 = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
+        PdfDocument.Page page1 = pdfDocument.startPage(pageInfo1);
+        drawContentOnPage(page1.getCanvas(), pageWidth, pageHeight, false);
+        pdfDocument.finishPage(page1);
+
+        // Страница 2: QR-код
+        PdfDocument.PageInfo pageInfo2 = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 2).create();
+        PdfDocument.Page page2 = pdfDocument.startPage(pageInfo2);
+        drawContentOnPage(page2.getCanvas(), pageWidth, pageHeight, true);
+        pdfDocument.finishPage(page2);
+
+        // Сохранение PDF
+        File file = savePdfDocument(pdfDocument);
+        if (file != null) {
+            openPdfFile(file);
+        }
+
+        pdfDocument.close();
+        refreshLayout();
+    }
+
+    private void drawContentOnPage(Canvas canvas, int pageWidth, int pageHeight, boolean isQrPage) {
+        if (isQrPage) {
+            // Генерация QR-кода
+            if (cardId == null) cardId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
+            Bitmap qrBitmap = QRCodeGenerator.generateQRCode(domen + userId + "/" + cardId);
+
+            if (qrBitmap != null) {
+                // Масштабирование QR-кода
+                int size = Math.min(pageWidth, pageHeight) * 2/3;
+                qrBitmap = Bitmap.createScaledBitmap(qrBitmap, size, size, true);
+
+                // Центрирование
+                float left = (pageWidth - qrBitmap.getWidth()) / 2f;
+                float top = (pageHeight - qrBitmap.getHeight()) / 2f;
+                canvas.drawBitmap(qrBitmap, left, top, null);
+            }
+        } else {
+            // Отрисовка информации
+            Bitmap infoBitmap = getBitmapFromView(layoutContainer);
+            if (infoBitmap != null) {
+                Matrix matrix = new Matrix();
+                float scale = Math.min(
+                        pageWidth / (float) infoBitmap.getWidth(),
+                        pageHeight / (float) infoBitmap.getHeight()
+                );
+                matrix.postScale(scale, scale);
+                canvas.drawBitmap(infoBitmap, matrix, null);
+            }
+        }
+    }
+
+    private Bitmap getBitmapFromView(View view) {
+        view.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Drawable bgDrawable = view.getBackground();
+        if (bgDrawable != null) bgDrawable.draw(canvas);
+        else canvas.drawColor(Color.WHITE);
+        view.draw(canvas);
+        return bitmap;
+    }
+
+    private File savePdfDocument(PdfDocument pdfDocument) {
+        File directory = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "BusinessCards");
+        if (!directory.exists() && !directory.mkdirs()) return null;
+
+        File file = new File(directory, "business_card_" + System.currentTimeMillis() + ".pdf");
+        try {
+            pdfDocument.writeTo(new FileOutputStream(file));
+            return file;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void openPdfFile(File file) {
+        Uri uri = FileProvider.getUriForFile(this, "volosyuk.easybizcard.fileprovider", file);
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "application/pdf");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "Установите программу для просмотра PDF", Toast.LENGTH_SHORT).show();
+        }
     }
 
 }

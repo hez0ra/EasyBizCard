@@ -43,7 +43,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.models.BusinessCardv0_5;
 import volosyuk.easybizcard.utils.BusinessCardRepository;
 import volosyuk.easybizcard.utils.QRCodeGenerator;
 import volosyuk.easybizcard.utils.ReportRepository;
@@ -63,7 +63,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
     private ImageButton qrCodeBtn, whatsapp, viber, telegram, facebook, vkontakte, instagram, bookmark, report, analytics, delete, edit, menu;
     private BusinessCardRepository businessCardRepository;
     private FirebaseAuth mAuth;
-    private BusinessCard card;
+    private BusinessCardv0_5 card;
     private ReportRepository reportRepository;
     private ScrollView mainLayout;
     private int sample;
@@ -73,7 +73,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        card = (BusinessCard) getIntent().getSerializableExtra(EXTRA_CARD);
+        card = (BusinessCardv0_5) getIntent().getSerializableExtra(EXTRA_CARD);
         sample = card.getSample();
         switch (sample){
             case 1:
@@ -339,7 +339,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
         }
     }
 
-    private void setupSocialLinks(BusinessCard card) {
+    private void setupSocialLinks(BusinessCardv0_5 card) {
         setupLink(card.getWhatsApp(), whatsapp);
         setupLink(card.getViber(), viber);
         setupLink(card.getTelegram(), telegram);
@@ -442,7 +442,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    BusinessCard updatedCard = (BusinessCard) result.getData().getSerializableExtra(EditActivity.EXTRA_UPDATED_CARD);
+                    BusinessCardv0_5 updatedCard = (BusinessCardv0_5) result.getData().getSerializableExtra(EditActivity.EXTRA_UPDATED_CARD);
                     if (updatedCard != null) {
                         updateUI(updatedCard);
                     }
@@ -451,7 +451,7 @@ public class BusinessCardDetailActivity extends AppCompatActivity {
     );
 
     // Метод для обновления UI
-    private void updateUI(BusinessCard updatedCard) {
+    private void updateUI(BusinessCardv0_5 updatedCard) {
         card = updatedCard; // Обновляем текущую визитку
         title.setText(card.getTitle());
         description.setText(card.getDescription());

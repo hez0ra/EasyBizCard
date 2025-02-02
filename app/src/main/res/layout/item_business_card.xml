@@ -1,49 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="4dp">
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:layout_marginBottom="8dp"
+    android:background="@android:color/white"
+    android:elevation="4dp">
 
-    <LinearLayout
-        android:orientation="vertical"
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/card_id"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:elevation="5dp"
-        android:background="@color/background"
-        android:padding="16dp">
+        android:text="Card ID"
+        android:textSize="16sp"
+        android:textStyle="bold"/>
 
-        <!-- Изображение визитки -->
-        <ImageView
-            android:id="@+id/card_image"
-            android:layout_width="match_parent"
-            android:layout_height="200dp"
-            android:src="@drawable/placeholder_image"
-            android:contentDescription="@string/card_image_desc"
-            android:scaleType="centerCrop" />
+    <TextView
+        android:id="@+id/card_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Status"
+        android:textSize="14sp"
+        android:textColor="@android:color/darker_gray"/>
 
-        <!-- Заголовок визитки -->
-        <TextView
-            android:id="@+id/card_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="18sp"
-            android:textColor="@color/text"
-            android:layout_marginTop="8dp"
-            android:text="Business Card Title" />
+    <TextView
+        android:id="@+id/card_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Date"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray"/>
 
-        <!-- Описание визитки -->
-        <TextView
-            android:id="@+id/card_description"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textSize="14sp"
-            android:textColor="@color/second"
-            android:layout_marginTop="4dp"
-            android:maxLines="3"
-            android:text="Business Card Description" />
-    </LinearLayout>
-</androidx.cardview.widget.CardView>
+    <TextView
+        android:id="@+id/card_user_id"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="User ID"
+        android:textSize="12sp"
+        android:textColor="@android:color/darker_gray"/>
+</LinearLayout>

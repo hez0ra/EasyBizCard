@@ -2,10 +2,8 @@ package volosyuk.easybizcard;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
@@ -86,8 +84,8 @@ public class AddActivity extends AppCompatActivity {
         });
 
         toMyCards.setOnClickListener(v ->{
-            Intent intent = new Intent(this, MyCardsActivity.class);
-            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, false);
+            Intent intent = new Intent(this, MyCardsActivityv0_5.class);
+            intent.putExtra(MyCardsActivityv0_5.EXTRA_BOOKMARKS, false);
             startActivity(intent);
             overridePendingTransition(0, 0);
             finish();
@@ -100,8 +98,8 @@ public class AddActivity extends AppCompatActivity {
         });
 
         toBookmarks.setOnClickListener(v -> {
-            Intent intent = new Intent(this, MyCardsActivity.class);
-            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, true);
+            Intent intent = new Intent(this, MyCardsActivityv0_5.class);
+            intent.putExtra(MyCardsActivityv0_5.EXTRA_BOOKMARKS, true);
             startActivity(intent);
             overridePendingTransition(0, 0);
             finish();

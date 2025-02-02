@@ -15,7 +15,7 @@ import com.google.firebase.storage.StorageReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.models.BusinessCardv0_5;
 
 public class BusinessCardRepository {
     private final CollectionReference businessCardCollection;
@@ -25,9 +25,9 @@ public class BusinessCardRepository {
     }
 
     // Метод для получения визиток текущего пользователя
-    public CompletableFuture<List<BusinessCard>> getUserBusinessCards(String userId) {
-        CompletableFuture<List<BusinessCard>> future = new CompletableFuture<>();
-        List<BusinessCard> businessCardList = new ArrayList<>();
+    public CompletableFuture<List<BusinessCardv0_5>> getUserBusinessCards(String userId) {
+        CompletableFuture<List<BusinessCardv0_5>> future = new CompletableFuture<>();
+        List<BusinessCardv0_5> businessCardv05List = new ArrayList<>();
 
         businessCardCollection
                 .whereEqualTo("userId", userId) // Фильтр по userId
@@ -37,11 +37,11 @@ public class BusinessCardRepository {
                         QuerySnapshot documents = task.getResult();
                         if (documents != null) {
                             for (QueryDocumentSnapshot document : documents) {
-                                BusinessCard card = document.toObject(BusinessCard.class);
+                                BusinessCardv0_5 card = document.toObject(BusinessCardv0_5.class);
                                 card.setCardId(document.getId());
-                                businessCardList.add(card);
+                                businessCardv05List.add(card);
                             }
-                            future.complete(businessCardList);
+                            future.complete(businessCardv05List);
                         } else {
                             future.completeExceptionally(new Exception("No documents found"));
                         }
@@ -55,9 +55,9 @@ public class BusinessCardRepository {
 
 
     // Метод для получения всех визиток
-    public CompletableFuture<List<BusinessCard>> getAllBusinessCards() {
-        CompletableFuture<List<BusinessCard>> future = new CompletableFuture<>();
-        List<BusinessCard> businessCardList = new ArrayList<>();
+    public CompletableFuture<List<BusinessCardv0_5>> getAllBusinessCards() {
+        CompletableFuture<List<BusinessCardv0_5>> future = new CompletableFuture<>();
+        List<BusinessCardv0_5> businessCardv05List = new ArrayList<>();
 
         businessCardCollection.get()
                 .addOnCompleteListener(task -> {
@@ -65,11 +65,11 @@ public class BusinessCardRepository {
                         QuerySnapshot documents = task.getResult();
                         if (documents != null) {
                             for (QueryDocumentSnapshot document : documents) {
-                                BusinessCard card = document.toObject(BusinessCard.class);
+                                BusinessCardv0_5 card = document.toObject(BusinessCardv0_5.class);
                                 card.setCardId(document.getId());
-                                businessCardList.add(card);
+                                businessCardv05List.add(card);
                             }
-                            future.complete(businessCardList);
+                            future.complete(businessCardv05List);
                         }
                     }
                 });
@@ -77,7 +77,7 @@ public class BusinessCardRepository {
     }
 
     // Метод для добавления визитки
-    public CompletableFuture<Void> addBusinessCard(BusinessCard card) {
+    public CompletableFuture<Void> addBusinessCard(BusinessCardv0_5 card) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         String businessCardId = businessCardCollection.document().getId();
         card.setCardId(businessCardId);
@@ -94,8 +94,8 @@ public class BusinessCardRepository {
     }
 
     // Метод для обновления визитки
-    public void updateBusinessCard(BusinessCard businessCard) {
-        businessCardCollection.document(businessCard.getCardId()).set(businessCard);
+    public void updateBusinessCard(BusinessCardv0_5 businessCardv05) {
+        businessCardCollection.document(businessCardv05.getCardId()).set(businessCardv05);
     }
 
     // Метод для удаления визитки по ID
@@ -106,14 +106,14 @@ public class BusinessCardRepository {
                     if (task.isSuccessful() && task.getResult() != null) {
                         // Получаем визитку из документа
                         DocumentSnapshot document = task.getResult();
-                        BusinessCard businessCard = document.toObject(BusinessCard.class);
+                        BusinessCardv0_5 businessCardv05 = document.toObject(BusinessCardv0_5.class);
 
                         // Удаляем саму визитку из Firestore
                         businessCardCollection.document(cardId).delete();
 
                         // Если у визитки есть imageUrl, удаляем фото из Firebase Storage
-                        if (businessCard != null && businessCard.getImageUrl() != null) {
-                            String imageUrl = businessCard.getImageUrl();
+                        if (businessCardv05 != null && businessCardv05.getImageUrl() != null) {
+                            String imageUrl = businessCardv05.getImageUrl();
                             StorageReference photoRef = FirebaseStorage.getInstance().getReferenceFromUrl(imageUrl);
                             photoRef.delete()
                                     .addOnSuccessListener(aVoid -> {
@@ -144,16 +144,16 @@ public class BusinessCardRepository {
     }
 
     // Метод для поиска визитки по ID
-    public CompletableFuture<BusinessCard> searchBusinessCardById(String cardId) {
-        CompletableFuture<BusinessCard> future = new CompletableFuture<>();
+    public CompletableFuture<BusinessCardv0_5> searchBusinessCardById(String cardId) {
+        CompletableFuture<BusinessCardv0_5> future = new CompletableFuture<>();
         businessCardCollection.document(cardId).get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful() && task.getResult() != null) {
                         DocumentSnapshot document = task.getResult();  // Используйте DocumentSnapshot, а не QueryDocumentSnapshot
                         if (document.exists()) {
-                            BusinessCard businessCard = document.toObject(BusinessCard.class);
-                            businessCard.setCardId(document.getId());
-                            future.complete(businessCard);
+                            BusinessCardv0_5 businessCardv05 = document.toObject(BusinessCardv0_5.class);
+                            businessCardv05.setCardId(document.getId());
+                            future.complete(businessCardv05);
                         } else {
                             future.complete(null);  // Визитка не найдена
                         }

@@ -2,8 +2,9 @@ package volosyuk.easybizcard;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
-import android.widget.ImageButton;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.activity.EdgeToEdge;
@@ -15,27 +16,23 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import volosyuk.easybizcard.adapters.CardAdapter;
+import volosyuk.easybizcard.adapters.MyCardsAdapter;
 import volosyuk.easybizcard.models.BusinessCard;
-import volosyuk.easybizcard.utils.BusinessCardRepository;
-import volosyuk.easybizcard.utils.UserRepository;
 
 public class MyCardsActivity extends AppCompatActivity {
 
-    public final static String EXTRA_BOOKMARKS = "isBookmarks";
-
-    ImageButton toAdd, toMyCards, toScan, toBookmarks, toProfile;
-
     private RecyclerView recyclerView;
-    private CardAdapter adapter;
-    private List<BusinessCard> businessCards = new ArrayList<>();
-    private BusinessCardRepository businessCardRepository;
-    private UserRepository userRepository;
+    private MyCardsAdapter adapter;
+    private List<BusinessCard> businessCards;
     private FirebaseAuth mAuth;
+    private FirebaseFirestore db;
     private TextView hint;
 
     @Override
@@ -49,117 +46,53 @@ public class MyCardsActivity extends AppCompatActivity {
             return insets;
         });
 
-        toAdd = findViewById(R.id.my_cards_to_add);
-        toBookmarks = findViewById(R.id.my_cards_to_bookmarks);
-        toScan = findViewById(R.id.my_cards_to_scan);
-        toMyCards = findViewById(R.id.my_cards_to_my_cards);
-        toProfile = findViewById(R.id.my_cards_to_profile);
-
-        // Инициализация компонентов
         recyclerView = findViewById(R.id.recycler_view_cards);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        mAuth = FirebaseAuth.getInstance();
-        FirebaseFirestore firebaseFirestore = FirebaseFirestore.getInstance();
-        businessCardRepository = new BusinessCardRepository(firebaseFirestore);
-        userRepository = new UserRepository(firebaseFirestore, mAuth);
+
         hint = findViewById(R.id.my_cards_text);
 
-        adapter = new CardAdapter(this, businessCards);
+        businessCards = new ArrayList<>();
+        mAuth = FirebaseAuth.getInstance();
+        db = FirebaseFirestore.getInstance();
+
+        adapter = new MyCardsAdapter(this, businessCards);
         recyclerView.setAdapter(adapter);
 
-        toAdd.setOnClickListener(v ->{
-            Intent intent = new Intent(this, AddActivity.class);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
-            finish();
-        });
-
-        toMyCards.setOnClickListener(v ->{
-            Intent intent = new Intent(this, MyCardsActivity.class);
-            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, false);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
-            finish();
-        });
-
-        toScan.setOnClickListener(v ->{
-            Intent intent = new Intent(this, QRScannerActivity.class);
-            startActivityForResult(intent, 365);
-            overridePendingTransition(0, 0);
-        });
-
-        toBookmarks.setOnClickListener(v -> {
-            Intent intent = new Intent(this, MyCardsActivity.class);
-            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARKS, true);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
-            finish();
-        });
-
-        toProfile.setOnClickListener(v -> {
-            Intent intent = new Intent(this, ProfileActivity.class);
-            startActivity(intent);
-            overridePendingTransition(0, 0);
-            finish();
-        });
-
-
         loadCards();
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        loadCards();
-    }
+    private void loadCards() {
+        String userId = mAuth.getCurrentUser().getUid();  // Получаем ID текущего пользователя
 
-    private void loadCards(){
-        if(getIntent().getBooleanExtra(EXTRA_BOOKMARKS, false)){
-            userRepository.getAllBookmarkedCards().thenAccept(result -> {
-                businessCards.clear();  // Очищаем текущий список
-                businessCards.addAll(result);  // Добавляем новые данные
-                adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
-                hint.setVisibility(View.GONE);
-                toBookmarks.setOnClickListener(v -> {});
-                toBookmarks.setBackgroundColor(getResources().getColor(R.color.active));
-                if(result.isEmpty()){
-                    hint.setText("У ваз нет сохраненных визиток");
-                    hint.setVisibility(View.VISIBLE);
-                }
-            });
-        }
-        else{
-            if(mAuth.getCurrentUser().getUid() != null){
-                // Загрузка визиток из Firestore
-                businessCardRepository.getUserBusinessCards(mAuth.getCurrentUser().getUid()).thenAccept(result -> {
-                    businessCards.clear();  // Очищаем текущий список
-                    businessCards.addAll(result);  // Добавляем новые данные
-                    adapter.notifyDataSetChanged();  // Обновление адаптера с новыми данными
-                    hint.setVisibility(View.GONE);
-                    toMyCards.setOnClickListener(v -> {});
-                    toMyCards.setBackgroundColor(getResources().getColor(R.color.active));
-                    if (result.isEmpty()){
-                        hint.setText("У ваз нет созданных визиток");
-                        hint.setVisibility(View.VISIBLE);
+        // Запрос на получение визиток текущего пользователя
+        db.collection("business_cards")
+                .whereEqualTo("user_id", userId)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    if (!queryDocumentSnapshots.isEmpty()) {
+                        for (DocumentSnapshot document : queryDocumentSnapshots) {
+                            // Обработка каждого документа
+                            String id = document.getString("id");
+                            Long createdAt = document.getLong("created_at");
+                            String status = document.getString("status");
+                            String fileUrl = document.getString("file_url");
+                            String user_id = document.getString("user_id");
+
+                            // Создаем объект бизнес-карты из полученных данных
+                            BusinessCard card = new BusinessCard(id, createdAt, status, fileUrl, user_id);
+
+                            // Добавляем карту в список
+                            businessCards.add(card);
+                        }
+                        // Обновляем адаптер (если он у вас есть)
+                        adapter.notifyDataSetChanged();
+                    } else {
+                        Log.d("Firestore", "Нет визиток для текущего пользователя");
                     }
+                })
+                .addOnFailureListener(e -> {
+                    Log.e("Firestore", "Ошибка при получении данных", e);
                 });
-            }
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 365 && resultCode == RESULT_OK) {
-            String qrCode = data.getStringExtra("SCAN_RESULT");
-
-            businessCardRepository.searchBusinessCardById(qrCode).thenAccept(card ->{
-                Intent intent = new Intent(this, BusinessCardDetailActivity.class);
-                intent.putExtra(BusinessCardDetailActivity.EXTRA_CARD, card);
-                overridePendingTransition(0, 0);
-                startActivity(intent);
-            });
-        }
     }
 
 }

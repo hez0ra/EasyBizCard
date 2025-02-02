@@ -1,6 +1,5 @@
 package volosyuk.easybizcard.fragments;
 
-import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -16,21 +15,17 @@ import com.google.firebase.firestore.FirebaseFirestore;
 
 import java.util.List;
 
-import volosyuk.easybizcard.BusinessCardDetailActivity;
 import volosyuk.easybizcard.R;
 import volosyuk.easybizcard.adapters.CardAdapter;
-import volosyuk.easybizcard.adapters.ReportAdapter;
-import volosyuk.easybizcard.models.BusinessCard;
-import volosyuk.easybizcard.models.Report;
+import volosyuk.easybizcard.models.BusinessCardv0_5;
 import volosyuk.easybizcard.utils.BusinessCardRepository;
-import volosyuk.easybizcard.utils.ReportRepository;
 
 
 public class CardsFragment extends Fragment {
 
     private RecyclerView recyclerView;
     private BusinessCardRepository businessCardRepository;
-    private List<BusinessCard> cardsList;
+    private List<BusinessCardv0_5> cardsList;
     private CardAdapter adapter;
 
     @Nullable
