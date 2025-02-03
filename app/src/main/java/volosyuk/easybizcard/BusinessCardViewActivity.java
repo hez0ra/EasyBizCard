@@ -1,27 +1,57 @@
 package volosyuk.easybizcard;
 
+import static volosyuk.easybizcard.TemplateEditorActivity.MM_TO_POINTS;
+
+import android.Manifest;
+import android.content.pm.PackageManager;
+import androidx.core.app.ActivityCompat;
+
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.graphics.pdf.PdfDocument;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
+import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
@@ -30,78 +60,168 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.squareup.picasso.Picasso;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import volosyuk.easybizcard.models.BusinessCardElement;
+import volosyuk.easybizcard.models.SocialNetwork;
+import volosyuk.easybizcard.utils.BusinessCardRepository;
+import volosyuk.easybizcard.utils.QRCodeGenerator;
+import volosyuk.easybizcard.utils.UserRepository;
 
 public class BusinessCardViewActivity extends AppCompatActivity {
 
     public static final String EXTRA_ID = "card_id";
+    private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 1;
+    private ConstraintLayout mainLayout;
     private static final int REQUEST_EDIT = 1;
     private ArrayList<BusinessCardElement> elements = new ArrayList<>();
     private LinearLayout layoutContainer;
-    private String cardID;
-    private ImageButton btnEdit;
+    private String cardId;
+    private ImageButton btnMenu, btnEdit, btnBookmark, btnShare, btnDelete, btnAnalytics;
+    private boolean menuIsOpen = false;
+    private String ownerId, currentUserId;
+    private boolean isMarked;
+    private UserRepository userRepository;
+    private BusinessCardRepository businessCardRepository;
+    private int backColor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_business_card_view);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.business_card_view), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;
         });
 
-        btnEdit = findViewById(R.id.btn_edit_card);
-        cardID = getIntent().getStringExtra(EXTRA_ID);
+        cardId = getIntent().getStringExtra(EXTRA_ID);
 
-        btnEdit.setOnClickListener(v -> {
-            Intent intent = new Intent(this, TemplateEditorActivity.class);
-            intent.putExtra(TemplateEditorActivity.EXTRA_CARD, elements);
-            intent.putExtra(TemplateEditorActivity.EXTRA_CARD_ID, cardID);
-            startActivityForResult(intent, REQUEST_EDIT);
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        userRepository = new UserRepository(db, mAuth);
+        businessCardRepository = new BusinessCardRepository(db);
+
+        currentUserId = mAuth.getCurrentUser().getUid();
+        userRepository.isCardBookmarked(cardId).thenAccept(result -> {
+            isMarked = result;
+            if(isMarked){
+                btnBookmark.setImageResource(R.drawable.icon_bookmark_remove);
+            }
         });
-        loadBusinessCard(cardID);
+
+        mainLayout = findViewById(R.id.business_card_view);
+        loadBusinessCard(cardId);
+
+        btnMenu = findViewById(R.id.btn_menu_view);
+        btnEdit = findViewById(R.id.btn_edit_view);
+        btnBookmark = findViewById(R.id.btn_bookmark_view);
+        btnShare = findViewById(R.id.btn_share_view);
+        btnDelete = findViewById(R.id.btn_delete_view);
+        btnAnalytics = findViewById(R.id.btn_analytics_view);
+        setupMenu();
 
         layoutContainer = findViewById(R.id.business_card_view_content);
     }
+
+    private void setupMenu() {
+        btnMenu.setOnClickListener(v -> {
+            if(menuIsOpen){
+                btnBookmark.setVisibility(View.VISIBLE);
+                btnShare.setVisibility(View.VISIBLE);
+                if(Objects.equals(ownerId, currentUserId)){
+                    btnEdit.setVisibility(View.VISIBLE);
+                    btnDelete.setVisibility(View.VISIBLE);
+                    btnAnalytics.setVisibility(View.VISIBLE);
+                }
+            }else {
+                btnBookmark.setVisibility(View.GONE);
+                btnShare.setVisibility(View.GONE);
+                btnEdit.setVisibility(View.GONE);
+                btnDelete.setVisibility(View.GONE);
+                btnAnalytics.setVisibility(View.GONE);
+            }
+            menuIsOpen = !menuIsOpen;
+        });
+
+        btnBookmark.setOnClickListener(v -> {
+            changeBookmark();
+        });
+
+        btnEdit.setOnClickListener(v -> {
+            editCard();
+        });
+
+        btnShare.setOnClickListener(v -> {
+            share();
+        });
+
+        btnDelete.setOnClickListener(v -> {
+            deleteCard();
+        });
+
+        btnAnalytics.setOnClickListener(v -> {
+            businessCardRepository.getViewsAndFavoritesCount(cardId).thenAccept(result -> {
+                showStatsDialog(result[0], result[1]);
+            });
+        });
+    }
+
+
+    // ------------------ Load elements ---------------------------
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == REQUEST_EDIT && resultCode == RESULT_OK && data != null) {
-            cardID = getIntent().getStringExtra(EXTRA_ID);
-            if (cardID != null) {
+            cardId = getIntent().getStringExtra(EXTRA_ID);
+            if (cardId != null) {
                 layoutContainer.removeAllViews();
-                loadBusinessCard(cardID); // Обновляем данные в UI
+                loadBusinessCard(cardId); // Обновляем данные в UI
             }
         }
     }
 
     private void loadBusinessCard(String documentId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
-        FirebaseAuth auth = FirebaseAuth.getInstance();
-        String userId = auth.getCurrentUser().getUid(); // Получаем userId текущего пользователя
 
-        // Запрос к Firestore для получения информации о визитке
+        // Сначала получаем userId и backgroundColor из Firestore
         db.collection("business_cards").document(documentId)
                 .get()
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
-                        // Теперь загружаем JSON из Firebase Storage
-                        loadBusinessCardFromStorage(userId, documentId);
+                        String userId = documentSnapshot.getString("user_id");
+                        Long bgColorLong = documentSnapshot.getLong("background_color");
+                        int backgroundColor = (bgColorLong != null) ? bgColorLong.intValue() : 0xFFFFFFFF; // Белый по умолчанию
+
+                        // Устанавливаем цвет фона
+                        mainLayout.setBackgroundColor(backgroundColor);
+                        backColor = backgroundColor;
+                        ownerId = userId;
+
+                        if (userId != null) {
+                            // Теперь загружаем JSON из Firebase Storage
+                            loadBusinessCardFromStorage(userId, documentId);
+                        } else {
+                            Log.e("Firestore", "user_id не найден!");
+                        }
                     } else {
-                        Log.e("Firestore", "Документ не найден!");
+                        Log.e("Firestore", "Документ не найден в Firestore!");
                     }
                 })
-                .addOnFailureListener(e -> Log.e("Firestore", "Ошибка при получении визитки", e));
+                .addOnFailureListener(e -> Log.e("Firestore", "Ошибка при получении данных из Firestore", e));
     }
 
     // Метод загрузки JSON-файла из Firebase Storage
@@ -128,6 +248,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
 
     // Метод для отображения элементов визитки
     private void displayBusinessCard(List<BusinessCardElement> elements) {
+        layoutContainer.removeAllViews();
         for (BusinessCardElement element : elements) {
             switch (element.getType()) {
                 case "text":
@@ -335,5 +456,502 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         });
 
         layoutContainer.addView(emailView);
+    }
+
+
+    // ------------------ Buttons for everyone ---------------------------
+
+
+    private void changeBookmark(){
+        if(isMarked){
+            isMarked = false;
+            userRepository.removeCardFromBookmarks(cardId);
+            btnBookmark.setImageResource(R.drawable.icon_bookmark_add);
+        }
+        else{
+            isMarked = true;
+            userRepository.addCardToBookmarks(cardId);
+            btnBookmark.setImageResource(R.drawable.icon_bookmark_remove);
+        }
+    }
+
+    private void share() {
+        // Массив вариантов для отображения
+        final String[] shareOptions = {"Ссылкой", "Как изображение", "Как PDF файл"};
+
+        new AlertDialog.Builder(this, R.style.CustomAlertDialog)
+                .setTitle("Поделиться визиткой")
+                .setItems(shareOptions, (dialog, which) -> {
+                    switch (which) {
+                        case 0: // Ссылкой
+                            shareLink();
+                            break;
+                        case 1: // Изображением
+                            shareImg();
+                            break;
+                        case 2: // PDF
+                            sharePdf();
+                            break;
+                    }
+                })
+                .setNegativeButton("Отмена", null)
+                .create()
+                .show();
+    }
+
+    private void shareLink() {
+        try {
+            // Формируем ссылку
+            String baseUrl = "https://easybizcard.com/";
+            String shareUrl = baseUrl + ownerId + "/" + cardId;
+
+            // Создаем интент для шаринга
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, shareUrl);
+
+            // Добавляем описание для диалога выбора
+            String shareTitle = "Поделиться визиткой";
+
+            // Показываем системный диалог выбора приложения
+            startActivity(Intent.createChooser(shareIntent, shareTitle));
+
+        } catch (ActivityNotFoundException e) {
+            // Обработка случая, когда нет приложений для шаринга
+            Toast.makeText(this,
+                    "Не найдено приложений для отправки",
+                    Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void shareImg(){
+        exportBusinessCardAsImage();
+    }
+
+    private void sharePdf(){
+        checkPermissionsAndGeneratePdf();
+    }
+
+    private void prepareLayoutToExport(){
+        for (int i = 0; i < layoutContainer.getChildCount(); i++) {
+            View childView = layoutContainer.getChildAt(i);
+
+            if (childView instanceof HorizontalScrollView) {
+                childView.setVisibility(View.GONE);
+                List<String> links = elements.get(i).getLinks();
+                for (String link : links) {
+                    // Создаем новый TextView для отображения соцсети
+                    TextView textView1 = new TextView(this);
+
+                    // Находим название социальной сети по ссылке
+                    String socialNetworkName = getSocialNetworkNameByLink(link);
+                    textView1.setText(socialNetworkName + ": ");
+                    textView1.setTextSize(16);
+                    textView1.setGravity(Gravity.START);
+                    textView1.setTextColor(Color.BLACK);
+                    setContrastTextColor(textView1, mainLayout);
+
+                    // Создаем второй TextView для отображения самой ссылки
+                    TextView textView2 = new TextView(this);
+                    textView2.setText(link);
+                    textView2.setTextSize(16);
+                    textView2.setGravity(Gravity.START);
+                    setContrastTextColor(textView2, mainLayout);
+
+                    // Устанавливаем параметры для TextView
+                    textView1.setLayoutParams(new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                    textView2.setLayoutParams(new LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+
+                    // Добавляем textView1 и textView2 в контейнер
+                    layoutContainer.addView(textView1);
+                    layoutContainer.addView(textView2);
+                }
+            }
+        }
+
+        layoutContainer.setBackgroundColor(backColor);
+
+        // Обновляем layoutContainer перед созданием картинки
+        layoutContainer.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        layoutContainer.layout(0, 0, layoutContainer.getMeasuredWidth(), layoutContainer.getMeasuredHeight());
+
+
+        // Убедимся, что все элементы перерисованы
+        layoutContainer.requestLayout();
+        layoutContainer.invalidate();
+    }
+
+    private void exportBusinessCardAsImage() {
+        // Скрываем ScrollView
+
+        ImageView QRimage = new ImageView(this);
+        if(cardId == null){
+            cardId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
+        }
+
+        prepareLayoutToExport();
+
+        Bitmap QRbitmap = QRCodeGenerator.generateQRCode("https://easybizcard/" + ownerId + "/" + cardId);
+        QRimage.setImageBitmap(QRbitmap);
+        layoutContainer.addView(QRimage);
+
+        // Обновляем layoutContainer перед созданием картинки
+        layoutContainer.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        layoutContainer.layout(0, 0, layoutContainer.getMeasuredWidth(), layoutContainer.getMeasuredHeight());
+
+
+        // Убедимся, что все элементы перерисованы
+        layoutContainer.requestLayout();
+        layoutContainer.invalidate();
+
+        // Создаем Bitmap из layoutContainer с учетом фона mainLayout
+        Bitmap bitmap = getBitmapFromViewWithBackground(layoutContainer, mainLayout);
+
+        if (bitmap != null) {
+            try {
+                // Сохранение изображения
+                File file = saveBitmapToFile(bitmap);
+
+                if (file != null) {
+                    Toast.makeText(this, "Визитка сохранена: " + file.getAbsolutePath(), Toast.LENGTH_LONG).show();
+                    displayBusinessCard(elements);
+                    // Поделиться изображением
+                    shareImage(file);
+                } else {
+                    Toast.makeText(this, "Ошибка сохранения изображения", Toast.LENGTH_SHORT).show();
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(this, "Ошибка экспорта: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private int getColorBrightness(int color) {
+        // Получаем компоненты RGB
+        int r = Color.red(color);
+        int g = Color.green(color);
+        int b = Color.blue(color);
+
+        // Применяем формулу для вычисления яркости
+        return (int) (0.2126 * r + 0.7152 * g + 0.0722 * b);
+    }
+
+    private void setContrastTextColor(TextView textView, View backgroundView) {
+        // Получаем цвет фона
+        int backgroundColor = ((ColorDrawable) backgroundView.getBackground()).getColor();
+
+        // Вычисляем яркость фона
+        int brightness = getColorBrightness(backgroundColor);
+
+        // Если яркость фона темная, делаем текст светлым, иначе темным
+        if (brightness < 128) {
+            textView.setTextColor(Color.WHITE);  // Белый для темного фона
+        } else {
+            textView.setTextColor(Color.BLACK);  // Черный для светлого фона
+        }
+    }
+
+    private String getSocialNetworkNameByLink(String link) {
+        List<SocialNetwork> socialNetworks = Arrays.asList(
+                new SocialNetwork("Ватсапп", R.drawable.whatsapp, "https://wa.me/{phone}"),
+                new SocialNetwork("ВКонтакте", R.drawable.vk, "https://vk.com/{username}"),
+                new SocialNetwork("Вайбер", R.drawable.viber, "https://viber.click/{phone}"),
+                new SocialNetwork("Телеграм", R.drawable.telegram, "https://t.me/{username}"),
+                new SocialNetwork("Инстаграм", R.drawable.instagram, "https://instagram.com/{username}"),
+                new SocialNetwork("Фейсбук", R.drawable.facebook, "https://facebook.com/{username}"),
+                new SocialNetwork("Снапчат", R.drawable.snapchat, "https://snapchat.com/add/{username}"),
+                new SocialNetwork("Линкедин", R.drawable.linkedin, "https://linkedin.com/in/{username}"),
+                new SocialNetwork("Одноклассники", R.drawable.ok, "https://ok.ru/profile/{username}"),
+                new SocialNetwork("Фигма", R.drawable.figma, "https://figma.com/@{username}"),
+                new SocialNetwork("Дрибл", R.drawable.dribbble, "https://dribbble.com/{username}"),
+                new SocialNetwork("ТикТок", R.drawable.tiktok, "https://www.tiktok.com/@{username}"),
+                new SocialNetwork("Дискорд", R.drawable.discord, "https://discord.com/users/{username}"),
+                new SocialNetwork("Скайп", R.drawable.skype, "skype:{username}?chat"),
+                new SocialNetwork("Эпик Геймс", R.drawable.epicgames, "https://www.epicgames.com/id/{username}"),
+                new SocialNetwork("Спотифай", R.drawable.spotify, "https://open.spotify.com/user/{username}"),
+                new SocialNetwork("Стим", R.drawable.steam, "https://steamcommunity.com/id/{username}")
+        );
+
+        for (SocialNetwork network : socialNetworks) {
+            // Проверяем, если ссылка соответствует шаблону
+            if (link.matches(network.getUrlTemplate().replace("{username}", ".*").replace("{phone}", ".*"))) {
+                return network.getName();  // Возвращаем имя соцсети, если совпало
+            }
+        }
+        return "Неизвестная сеть";  // Если соцсеть не найдена
+    }
+
+    private Bitmap getBitmapFromViewWithBackground(View view, View backgroundView) {
+        // Получаем цвет фона из mainLayout
+        int backgroundColor = ((ColorDrawable) backgroundView.getBackground()).getColor();
+
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        canvas.drawColor(backgroundColor);  // Заполняем фон основным цветом
+
+        view.draw(canvas);
+        return bitmap;
+    }
+
+    private File saveBitmapToFile(Bitmap bitmap) throws IOException {
+        File directory = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "BusinessCards");
+        if (!directory.exists()) {
+            directory.mkdirs();
+        }
+
+        String fileName = "business_card_" + System.currentTimeMillis() + ".png";
+        File file = new File(directory, fileName);
+
+        FileOutputStream fos = new FileOutputStream(file);
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+        fos.flush();
+        fos.close();
+
+        return file;
+    }
+
+    private void shareImage(File file) {
+        Uri uri = FileProvider.getUriForFile(this, "volosyuk.easybizcard.fileprovider", file);
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("image/png");
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivity(Intent.createChooser(intent, "Поделиться визиткой"));
+    }
+
+    private void checkPermissionsAndGeneratePdf() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            // Для Android 11 и выше
+            // Просто генерируем PDF, без запроса дополнительных разрешений
+            generatePrintDocument();
+        } else {
+            // Для Android 10 и ниже проверяем обычное разрешение
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        REQUEST_WRITE_EXTERNAL_STORAGE);
+            } else {
+                generatePrintDocument(); // Разрешение получено, генерируем PDF
+            }
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_WRITE_EXTERNAL_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                generatePrintDocument();
+            } else {
+                Toast.makeText(this, "Разрешение требуется для создания PDF", Toast.LENGTH_SHORT).show();
+            }
+        }
+    }
+
+    private void generatePrintDocument() {
+        // Подготовка данных для первой страницы
+        prepareLayoutToExport();
+
+        PdfDocument pdfDocument = new PdfDocument();
+
+        // Размеры визитки (85x55 мм)
+        int pageHeight = (int) (85 * MM_TO_POINTS);
+        int pageWidth = (int) (55 * MM_TO_POINTS);
+
+        // Страница 1: Информация
+        PdfDocument.PageInfo pageInfo1 = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
+        PdfDocument.Page page1 = pdfDocument.startPage(pageInfo1);
+        Canvas canvas1 = page1.getCanvas();
+
+        // Установка цвета фона
+        Paint backgroundPaint = new Paint();
+        backgroundPaint.setColor(backColor); // Используем выбранный цвет
+        canvas1.drawRect(0, 0, pageWidth, pageHeight, backgroundPaint);
+
+        // Получаем содержимое визитки как Bitmap
+        Bitmap contentBitmap = getBitmapFromView(layoutContainer);
+
+        // Масштабирование, чтобы контент поместился
+        float scale = Math.min(
+                pageWidth / (float) contentBitmap.getWidth(),
+                pageHeight / (float) contentBitmap.getHeight()
+        );
+
+        // Новые размеры после масштабирования
+        int newWidth = (int) (contentBitmap.getWidth() * scale);
+        int newHeight = (int) (contentBitmap.getHeight() * scale);
+
+        // Определение координат для центрирования
+        float left = (pageWidth - newWidth) / 2f;
+        float top = (pageHeight - newHeight) / 2f;
+
+        // Создаём матрицу для масштабирования и центрирования
+        Matrix matrix = new Matrix();
+        matrix.postScale(scale, scale);
+        matrix.postTranslate(left, top);
+
+        // Отрисовка содержимого визитки
+        canvas1.drawBitmap(contentBitmap, matrix, null);
+
+        pdfDocument.finishPage(page1);
+
+        // Страница 2: QR-код
+        PdfDocument.PageInfo pageInfo2 = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 2).create();
+        PdfDocument.Page page2 = pdfDocument.startPage(pageInfo2);
+        drawContentOnPage(page2.getCanvas(), pageWidth, pageHeight, true);
+        pdfDocument.finishPage(page2);
+
+        // Сохранение PDF
+        File file = savePdfDocument(pdfDocument);
+        if (file != null) {
+            openPdfFile(file);
+        }
+
+        pdfDocument.close();
+        displayBusinessCard(elements);
+    }
+
+    private void drawContentOnPage(Canvas canvas, int pageWidth, int pageHeight, boolean isQrPage) {
+        if (isQrPage) {
+            // Генерация QR-кода
+            if (cardId == null) cardId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
+            Bitmap qrBitmap = QRCodeGenerator.generateQRCode("https://easybizcard.com/" + ownerId + "/" + cardId);
+
+            if (qrBitmap != null) {
+                // Масштабирование QR-кода
+                int size = Math.min(pageWidth, pageHeight) * 2/3;
+                qrBitmap = Bitmap.createScaledBitmap(qrBitmap, size, size, true);
+
+                // Центрирование
+                float left = (pageWidth - qrBitmap.getWidth()) / 2f;
+                float top = (pageHeight - qrBitmap.getHeight()) / 2f;
+                canvas.drawBitmap(qrBitmap, left, top, null);
+            }
+        } else {
+            // Отрисовка информации
+            Bitmap infoBitmap = getBitmapFromView(layoutContainer);
+            if (infoBitmap != null) {
+                Matrix matrix = new Matrix();
+                float scale = Math.min(
+                        pageWidth / (float) infoBitmap.getWidth(),
+                        pageHeight / (float) infoBitmap.getHeight()
+                );
+                matrix.postScale(scale, scale);
+                canvas.drawBitmap(infoBitmap, matrix, null);
+            }
+        }
+    }
+
+    private Bitmap getBitmapFromView(View view) {
+        view.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        view.layout(0, 0, view.getMeasuredWidth(), view.getMeasuredHeight());
+
+        Bitmap bitmap = Bitmap.createBitmap(view.getWidth(), view.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        Drawable bgDrawable = view.getBackground();
+        if (bgDrawable != null) bgDrawable.draw(canvas);
+        else canvas.drawColor(Color.WHITE);
+        view.draw(canvas);
+        return bitmap;
+    }
+
+    private File savePdfDocument(PdfDocument pdfDocument) {
+        File directory = new File(getExternalFilesDir(Environment.DIRECTORY_DOCUMENTS), "BusinessCards");
+        if (!directory.exists() && !directory.mkdirs()) return null;
+
+        File file = new File(directory, "business_card_" + System.currentTimeMillis() + ".pdf");
+        if (file.exists()) {
+            file.delete();
+        }
+        try {
+            pdfDocument.writeTo(new FileOutputStream(file));
+            return file;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void openPdfFile(File file) {
+        Uri uri = FileProvider.getUriForFile(this, "volosyuk.easybizcard.fileprovider", file);
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(uri, "application/pdf");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+
+        try {
+            startActivity(intent);
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(this, "Установите программу для просмотра PDF", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // ------------------ Buttons for admin/creator ---------------------------
+
+
+    private void showStatsDialog(long viewsCount, long favoritesCount) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        LayoutInflater inflater = getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_stats, null);
+        builder.setView(dialogView);
+
+        BarChart barChart = dialogView.findViewById(R.id.dialog_analytics_bar_chart);
+        TextView viewsText = dialogView.findViewById(R.id.dialog_analytics_text_views);
+        TextView favoritesText = dialogView.findViewById(R.id.dialog_analytics_text_favorites);
+
+        viewsText.setText("Просмотры: " + viewsCount);
+        favoritesText.setText("Избранное: " + favoritesCount);
+
+        // Данные для диаграммы
+        List<BarEntry> entries = new ArrayList<>();
+        entries.add(new BarEntry(0f, viewsCount)); // Столбец для просмотров
+        entries.add(new BarEntry(1f, favoritesCount)); // Столбец для избранных
+
+        BarDataSet dataSet = new BarDataSet(entries, "Статистика");
+        dataSet.setColors(new int[]{Color.GREEN, Color.YELLOW}); // Цвета для каждого столбца
+
+        BarData data = new BarData(dataSet);
+        data.setBarWidth(0.5f); // Ширина столбцов
+        barChart.setData(data);
+        barChart.invalidate(); // Обновление диаграммы
+
+        // Настройка отображения осей и подписи
+        barChart.getXAxis().setPosition(XAxis.XAxisPosition.BOTTOM);
+        barChart.getXAxis().setGranularity(1f);
+        barChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(new String[]{"Просмотры", "Избранное"}));
+        barChart.getDescription().setEnabled(false); // Убрать описание
+        barChart.getAxisRight().setEnabled(false); // Отключить правую ось
+
+        builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
+        builder.show();
+    }
+
+    private void deleteCard(){
+        new AlertDialog.Builder(this)
+                .setTitle("Удаление визитки")
+                .setMessage("Вы точно уверены, данные будут удалены БЕЗ ВОЗМОЖНОСТИ ВОЗВРАТА?")
+                .setPositiveButton("Ок", (dialog, which) -> {
+                    businessCardRepository.deleteBusinessCardById(cardId);
+                    finish();
+                })
+                .setNegativeButton("Отмена", (dialog, which) -> {
+                    // Закрытие диалога
+                    dialog.dismiss();
+                })
+                .show();
+    }
+
+    private void editCard(){
+            Intent intent = new Intent(this, TemplateEditorActivity.class);
+            intent.putExtra(TemplateEditorActivity.EXTRA_CARD, elements);
+            intent.putExtra(TemplateEditorActivity.EXTRA_CARD_BACK, ((ColorDrawable) mainLayout.getBackground()).getColor());
+            intent.putExtra(TemplateEditorActivity.EXTRA_CARD_ID, cardId);
+            startActivityForResult(intent, REQUEST_EDIT);
     }
 }

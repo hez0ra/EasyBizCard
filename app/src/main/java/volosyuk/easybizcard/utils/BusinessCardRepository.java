@@ -179,6 +179,35 @@ public class BusinessCardRepository {
         return future;
     }
 
+    public CompletableFuture<Long[]> getViewsAndFavoritesCount(String cardId) {
+        CompletableFuture<Long[]> future = new CompletableFuture<>();
+        DocumentReference cardRef = businessCardCollection.document(cardId);
+
+        cardRef.get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        Long views = documentSnapshot.getLong("views");
+                        Long favorites = documentSnapshot.getLong("favorites");
+
+                        Long[] result = {
+                                views != null ? views : 0L,
+                                favorites != null ? favorites : 0L
+                        };
+
+                        future.complete(result);
+                    } else {
+                        future.completeExceptionally(new Exception("Документ не найден"));
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    future.completeExceptionally(
+                            new Exception("Ошибка получения данных: " + e.getMessage())
+                    );
+                });
+
+        return future;
+    }
+
     public CompletableFuture<Void> incrementFavoriteCount(String cardId) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         DocumentReference cardRef = businessCardCollection.document(cardId);
@@ -208,5 +237,7 @@ public class BusinessCardRepository {
                 });
         return future;
     }
+
+
 
 }

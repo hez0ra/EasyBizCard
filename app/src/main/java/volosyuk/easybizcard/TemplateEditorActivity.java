@@ -113,6 +113,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
     private final String domen = "https:/easybizcard.com/";
     public static final String EXTRA_CARD = "card_elements";
     public static final String EXTRA_CARD_ID = "card_id";
+    public static final String EXTRA_CARD_BACK = "card_background";
     private boolean editExistedImage = false;
     private boolean editExistedCard = false;
     private int posistionEditedImage = -1;
@@ -124,6 +125,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
     private final Integer[] fontSizes = {10, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 50, 60};
     private int selectedTextSize = 14;  // Значение по умолчанию для текста
     private int selectedTextColor = Color.BLACK;
+    private int selectedBackgroundColor = Color.WHITE;
     final int[] selectedAlignment = {Gravity.START}; // По умолчанию - выравнивание влево
     private LinearLayout layoutContainer;
     private static final int REQUEST_CAMERA = 1;
@@ -131,7 +133,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
     private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 3;
     private static final int REQUEST_CODE_PERMISSION = 4;
     private static final int REQUEST_CODE_CREATE_FILE = 5;
-    private static final float MM_TO_POINTS = 2.83465f;
+    public static final float MM_TO_POINTS = 2.83465f;
     private Uri photoUri;
     String userId, cardId;
     // Хранение выбранного выравнивания
@@ -150,6 +152,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         mainLayout = findViewById(R.id.template_editor);
         layoutContainer = findViewById(R.id.template_editor_content);
         userId = FirebaseAuth.getInstance().getCurrentUser().getUid();
+        selectedBackgroundColor = getColor(R.color.background);
 
 
         FloatingActionButton fabAdd = findViewById(R.id.fab_add);
@@ -220,6 +223,9 @@ public class TemplateEditorActivity extends AppCompatActivity {
         if(getIntent().getSerializableExtra(EXTRA_CARD) != null){
             businessCardElements = (ArrayList<BusinessCardElement>) getIntent().getSerializableExtra(EXTRA_CARD);
             editExistedCard = true;
+            selectedBackgroundColor = getIntent().getIntExtra(EXTRA_CARD_BACK, getColor(R.color.background));
+            mainLayout.setBackgroundColor(selectedBackgroundColor);
+            layoutContainer.setBackgroundColor(selectedBackgroundColor);
             refreshLayout();
         }
     }
@@ -231,6 +237,28 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
         RecyclerView recyclerView = dialogView.findViewById(R.id.recycler_edit_elements);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+
+        Button btnChangeBackground = dialogView.findViewById(R.id.btnChangeBackground);
+        btnChangeBackground.setOnClickListener(v -> {
+            ColorPickerDialogBuilder
+                    .with(this)
+                    .setTitle("Выберите цвет фона")
+                    .showAlphaSlider(false)
+                    .initialColor(selectedBackgroundColor)
+                    .wheelType(ColorPickerView.WHEEL_TYPE.CIRCLE)
+                    .density(12)
+                    .setPositiveButton("OK", new ColorPickerClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int selectedColor, Integer[] allColors) {
+                            mainLayout.setBackgroundColor(selectedColor);
+                            layoutContainer.setBackgroundColor(selectedColor);
+                            selectedBackgroundColor = selectedColor;
+                        }
+                    })
+                    .setNegativeButton("Отмена", null)
+                    .build()
+                    .show();
+        });
 
         adapter = new EditElementsAdapter(businessCardElements, new EditElementsAdapter.OnElementActionListener() {
             @Override
@@ -424,7 +452,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
                         getResources().getDisplayMetrics()
                 );
                 LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(size, size);
-                iconParams.setMargins(16, 16, 16, 16);
+                iconParams.setMargins(16, 16, 24, 16);
                 icon.setLayoutParams(iconParams);
 
                 icon.setOnClickListener(v -> {
@@ -977,6 +1005,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
         imageRef.delete();
     }
+
 
     // ------------------ Text ---------------------------
 
@@ -2352,6 +2381,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
     // ------------------ Save information ---------------------------
 
+
     // Функция для добавления текстового элемента
     private void addTextElementToJSON(String content, int textSize, String fontFamily, int colorText, boolean isBold,
                                       boolean isItalic, boolean isUnderline, boolean isStrikethrough, int alignment) {
@@ -2500,6 +2530,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         metadata.put("status", "обрабатывается");
         metadata.put("file_url", fileUrl);
         metadata.put("created_at", System.currentTimeMillis());
+        metadata.put("background_color", selectedBackgroundColor);
 
         // Сохранение метаданных в Firestore
         db.collection("business_cards").document(documentId)
@@ -2548,7 +2579,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         // Обновленные метаданные для документа
         Map<String, Object> updatedMetadata = new HashMap<>();
         updatedMetadata.put("file_url", fileUrl);
-        updatedMetadata.put("status", "обновлено"); // Можно обновить статус или другие поля
+        updatedMetadata.put("background_color", selectedBackgroundColor);
 
         // Обновление метаданных в Firestore
         db.collection("business_cards").document(documentId)
@@ -2567,6 +2598,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
 
     // ------------------ Export to PNG ---------------------------
+
 
     private void prepareLayoutToExport(){
         for (int i = 0; i < layoutContainer.getChildCount(); i++) {
@@ -2780,7 +2812,6 @@ public class TemplateEditorActivity extends AppCompatActivity {
         }
     }
 
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -2806,7 +2837,38 @@ public class TemplateEditorActivity extends AppCompatActivity {
         // Страница 1: Информация
         PdfDocument.PageInfo pageInfo1 = new PdfDocument.PageInfo.Builder(pageWidth, pageHeight, 1).create();
         PdfDocument.Page page1 = pdfDocument.startPage(pageInfo1);
-        drawContentOnPage(page1.getCanvas(), pageWidth, pageHeight, false);
+        Canvas canvas1 = page1.getCanvas();
+
+        // Установка цвета фона
+        Paint backgroundPaint = new Paint();
+        backgroundPaint.setColor(selectedBackgroundColor); // Используем выбранный цвет
+        canvas1.drawRect(0, 0, pageWidth, pageHeight, backgroundPaint);
+
+        // Получаем содержимое визитки как Bitmap
+        Bitmap contentBitmap = getBitmapFromView(layoutContainer);
+
+        // Масштабирование, чтобы контент поместился
+        float scale = Math.min(
+                pageWidth / (float) contentBitmap.getWidth(),
+                pageHeight / (float) contentBitmap.getHeight()
+        );
+
+        // Новые размеры после масштабирования
+        int newWidth = (int) (contentBitmap.getWidth() * scale);
+        int newHeight = (int) (contentBitmap.getHeight() * scale);
+
+        // Определение координат для центрирования
+        float left = (pageWidth - newWidth) / 2f;
+        float top = (pageHeight - newHeight) / 2f;
+
+        // Создаём матрицу для масштабирования и центрирования
+        Matrix matrix = new Matrix();
+        matrix.postScale(scale, scale);
+        matrix.postTranslate(left, top);
+
+        // Отрисовка содержимого визитки
+        canvas1.drawBitmap(contentBitmap, matrix, null);
+
         pdfDocument.finishPage(page1);
 
         // Страница 2: QR-код
@@ -2875,6 +2937,9 @@ public class TemplateEditorActivity extends AppCompatActivity {
         if (!directory.exists() && !directory.mkdirs()) return null;
 
         File file = new File(directory, "business_card_" + System.currentTimeMillis() + ".pdf");
+        if (file.exists()) {
+            file.delete();
+        }
         try {
             pdfDocument.writeTo(new FileOutputStream(file));
             return file;

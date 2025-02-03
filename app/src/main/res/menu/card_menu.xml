@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_share"
+        android:title="Поделиться"
+        app:showAsAction="never">
+        <menu>
+            <item
+                android:id="@+id/menu_share_link"
+                android:title="Ссылкой"/>
+            <item
+                android:id="@+id/menu_share_image"
+                android:title="Изображением"/>
+            <item
+                android:id="@+id/menu_share_pdf"
+                android:title="PDF"/>
+        </menu>
+    </item>
+
+    <item
+        android:id="@+id/menu_favorite"
+        android:title="В избранное"
+        android:icon="@drawable/icon_bookmark"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menu_statistics"
+        android:title="Статистика"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menu_delete"
+        android:title="Удалить"
+        android:visible="false"
+        app:showAsAction="never"/>
+
+    <item
+        android:id="@+id/menu_edit"
+        android:title="Изменить"
+        android:visible="false"
+        app:showAsAction="never"/>
+</menu>

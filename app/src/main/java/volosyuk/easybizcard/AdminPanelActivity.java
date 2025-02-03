@@ -12,7 +12,6 @@ import androidx.fragment.app.Fragment;
 
 import volosyuk.easybizcard.fragments.CardsFragment;
 import volosyuk.easybizcard.fragments.ReportsFragment;
-import volosyuk.easybizcard.fragments.UsersFragment;
 
 public class AdminPanelActivity extends AppCompatActivity {
 
@@ -23,7 +22,7 @@ public class AdminPanelActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_admin_panel);
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.business_card_view), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
             return insets;

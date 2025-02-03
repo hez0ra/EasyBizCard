@@ -4,12 +4,24 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:paddingBottom="16dp">
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler_edit_elements"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
         android:padding="16dp"/>
+
+    <Button
+        android:id="@+id/btnChangeBackground"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Изменить цвет фона"
+        android:layout_marginHorizontal="16dp"
+        android:textColor="@color/white"
+        android:backgroundTint="@color/main"
+        android:layout_marginTop="8dp"/>
 
 </LinearLayout>

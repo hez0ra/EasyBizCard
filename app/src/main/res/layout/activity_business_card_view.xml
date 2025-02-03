@@ -2,11 +2,12 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/main"
+    android:id="@+id/business_card_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
     tools:context=".BusinessCardViewActivity">
+
 
     <ScrollView
         android:layout_width="match_parent"
@@ -26,17 +27,76 @@
     </ScrollView>
 
     <ImageButton
-        android:id="@+id/btn_edit_card"
-        android:layout_width="56dp"
-        android:layout_height="56dp"
-        android:layout_alignParentBottom="true"
+        android:id="@+id/btn_menu_view"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="16dp"
-        android:background="@drawable/rounded_16dp"
-        android:backgroundTint="@color/main"
+        android:background="@drawable/rounded_12dp"
+        android:src="@drawable/icon_menu"
         android:elevation="4dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+    <ImageButton
+        android:id="@+id/btn_share_view"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/rounded_12dp"
+        android:src="@drawable/icon_share_white"
+        android:elevation="4dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/btn_menu_view"
+        app:layout_constraintTop_toBottomOf="@+id/btn_menu_view" />
+
+    <ImageButton
+        android:id="@+id/btn_bookmark_view"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/rounded_12dp"
+        android:src="@drawable/icon_bookmark_add"
+        android:elevation="4dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/btn_share_view"
+        app:layout_constraintTop_toBottomOf="@+id/btn_share_view" />
+
+    <ImageButton
+        android:id="@+id/btn_edit_view"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/rounded_12dp"
         android:src="@drawable/icon_edit_white"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:elevation="4dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/btn_bookmark_view"
+        app:layout_constraintTop_toBottomOf="@+id/btn_bookmark_view" />
+
+    <ImageButton
+        android:id="@+id/btn_delete_view"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/rounded_12dp"
+        android:src="@drawable/icon_delete"
+        android:elevation="4dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/btn_edit_view"
+        app:layout_constraintTop_toBottomOf="@+id/btn_edit_view" />
+
+    <ImageButton
+        android:id="@+id/btn_analytics_view"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/rounded_12dp"
+        android:src="@drawable/icon_analytics"
+        android:elevation="4dp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="@+id/btn_delete_view"
+        app:layout_constraintTop_toBottomOf="@+id/btn_delete_view" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

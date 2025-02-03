@@ -77,9 +77,10 @@ public class MyCardsActivity extends AppCompatActivity {
                             String status = document.getString("status");
                             String fileUrl = document.getString("file_url");
                             String user_id = document.getString("user_id");
+                            int backgroundColor = document.get("background_color", Long.class).intValue();
 
                             // Создаем объект бизнес-карты из полученных данных
-                            BusinessCard card = new BusinessCard(id, createdAt, status, fileUrl, user_id);
+                            BusinessCard card = new BusinessCard(id, createdAt, status, fileUrl, user_id, backgroundColor);
 
                             // Добавляем карту в список
                             businessCards.add(card);
