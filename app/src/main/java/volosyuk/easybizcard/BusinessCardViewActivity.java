@@ -1,8 +1,13 @@
 package volosyuk.easybizcard;
 
 import static volosyuk.easybizcard.TemplateEditorActivity.MM_TO_POINTS;
+import static volosyuk.easybizcard.models.BusinessCard.STATUS_LABELS;
+import static volosyuk.easybizcard.models.BusinessCard.STATUS_VALUES;
 
 import android.Manifest;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
 
@@ -22,24 +27,29 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.animation.DecelerateInterpolator;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
 import androidx.core.graphics.Insets;
@@ -72,6 +82,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import volosyuk.easybizcard.models.BusinessCard;
 import volosyuk.easybizcard.models.BusinessCardElement;
 import volosyuk.easybizcard.models.SocialNetwork;
 import volosyuk.easybizcard.utils.BusinessCardRepository;
@@ -85,15 +96,20 @@ public class BusinessCardViewActivity extends AppCompatActivity {
     private ConstraintLayout mainLayout;
     private static final int REQUEST_EDIT = 1;
     private ArrayList<BusinessCardElement> elements = new ArrayList<>();
-    private LinearLayout layoutContainer;
-    private String cardId;
+    private LinearLayout layoutContainer, statusLayout;
     private ImageButton btnMenu, btnEdit, btnBookmark, btnShare, btnDelete, btnAnalytics;
     private boolean menuIsOpen = false;
-    private String ownerId, currentUserId;
-    private boolean isMarked;
+    private String ownerId, currentUserId, cardId;
+    private boolean isMarked, isAdmin;
     private UserRepository userRepository;
     private BusinessCardRepository businessCardRepository;
     private int backColor;
+    private Handler handler;
+    private Runnable hideButtonRunnable;
+    private Spinner adminStatusSpinner;
+    private Button adminStatusBtn;
+    private BusinessCard.Status status;
+    private FirebaseFirestore db;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -109,7 +125,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         cardId = getIntent().getStringExtra(EXTRA_ID);
 
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
-        FirebaseFirestore db = FirebaseFirestore.getInstance();
+        db = FirebaseFirestore.getInstance();
         userRepository = new UserRepository(db, mAuth);
         businessCardRepository = new BusinessCardRepository(db);
 
@@ -120,41 +136,52 @@ public class BusinessCardViewActivity extends AppCompatActivity {
                 btnBookmark.setImageResource(R.drawable.icon_bookmark_remove);
             }
         });
+        userRepository.isActiveUserAdmin().thenAccept(result -> {
+            isAdmin = result;
+        });
 
         mainLayout = findViewById(R.id.business_card_view);
-        loadBusinessCard(cardId);
-
         btnMenu = findViewById(R.id.btn_menu_view);
         btnEdit = findViewById(R.id.btn_edit_view);
         btnBookmark = findViewById(R.id.btn_bookmark_view);
         btnShare = findViewById(R.id.btn_share_view);
         btnDelete = findViewById(R.id.btn_delete_view);
         btnAnalytics = findViewById(R.id.btn_analytics_view);
+        statusLayout = findViewById(R.id.admin_status_btns);
+        adminStatusSpinner = findViewById(R.id.spinnerStatus);
+        adminStatusBtn = findViewById(R.id.btnSaveStatus);
+        layoutContainer = findViewById(R.id.business_card_view_content);
+
+        adminStatusBtn.setOnClickListener(v -> {
+            updateCardStatus();
+        });
+
         setupMenu();
 
-        layoutContainer = findViewById(R.id.business_card_view_content);
+        handler = new Handler();
+        hideButtonRunnable = () -> {
+            if (!menuIsOpen) {
+                hideButtonWithAnimation(); // Анимация исчезновения
+            }
+        };
+
+
+        loadBusinessCard(cardId);
+        // Запускаем таймер при старте
+        resetTimer();
+
+        // Обрабатываем касания экрана
+        mainLayout.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                showButtonWithAnimation(); // Анимация появления
+                resetTimer(); // Перезапуск таймера
+            }
+            return false;
+        });
+
     }
 
     private void setupMenu() {
-        btnMenu.setOnClickListener(v -> {
-            if(menuIsOpen){
-                btnBookmark.setVisibility(View.VISIBLE);
-                btnShare.setVisibility(View.VISIBLE);
-                if(Objects.equals(ownerId, currentUserId)){
-                    btnEdit.setVisibility(View.VISIBLE);
-                    btnDelete.setVisibility(View.VISIBLE);
-                    btnAnalytics.setVisibility(View.VISIBLE);
-                }
-            }else {
-                btnBookmark.setVisibility(View.GONE);
-                btnShare.setVisibility(View.GONE);
-                btnEdit.setVisibility(View.GONE);
-                btnDelete.setVisibility(View.GONE);
-                btnAnalytics.setVisibility(View.GONE);
-            }
-            menuIsOpen = !menuIsOpen;
-        });
-
         btnBookmark.setOnClickListener(v -> {
             changeBookmark();
         });
@@ -172,12 +199,59 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         });
 
         btnAnalytics.setOnClickListener(v -> {
-            businessCardRepository.getViewsAndFavoritesCount(cardId).thenAccept(result -> {
-                showStatsDialog(result[0], result[1]);
-            });
+                    businessCardRepository.getViewsAndFavoritesCount(cardId).thenAccept(result -> {
+                        showStatsDialog(result[0], result[1]);
+                    });
+        });
+
+        btnMenu.setOnClickListener(v -> {
+            if (menuIsOpen) {
+                btnBookmark.setVisibility(View.GONE);
+                btnShare.setVisibility(View.GONE);
+                btnEdit.setVisibility(View.GONE);
+                btnDelete.setVisibility(View.GONE);
+                btnAnalytics.setVisibility(View.GONE);
+            } else {
+                btnBookmark.setVisibility(View.VISIBLE);
+                btnShare.setVisibility(View.VISIBLE);
+                if (Objects.equals(ownerId, currentUserId)) {
+                    btnEdit.setVisibility(View.VISIBLE);
+                    btnDelete.setVisibility(View.VISIBLE);
+                    btnAnalytics.setVisibility(View.VISIBLE);
+                }
+            }
+            menuIsOpen = !menuIsOpen;
+
+            resetTimer(); // Сбрасываем таймер, когда меню открывается/закрывается
         });
     }
 
+    private void updateCardStatus() {
+        int selectedIndex = adminStatusSpinner.getSelectedItemPosition();
+        BusinessCard.Status newStatus = STATUS_VALUES.get(selectedIndex); // Получаем соответствующий статус
+
+        db.collection("business_cards").document(cardId)
+                .update("status", newStatus.name())
+                .addOnSuccessListener(unused ->
+                        Toast.makeText(this, "Статус обновлен", Toast.LENGTH_SHORT).show()
+                )
+                .addOnFailureListener(e ->
+                        Toast.makeText(this, "Ошибка обновления", Toast.LENGTH_SHORT).show()
+                );
+    }
+
+    private void setupStatusSpinner() {
+        // Создаем список русских названий
+        List<String> statusNames = new ArrayList<>();
+        for (BusinessCard.Status status : STATUS_VALUES) {
+            statusNames.add(STATUS_LABELS.get(status));
+        }
+
+        // Настройка адаптера
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, statusNames);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        adminStatusSpinner.setAdapter(adapter);
+    }
 
     // ------------------ Load elements ---------------------------
 
@@ -204,12 +278,19 @@ public class BusinessCardViewActivity extends AppCompatActivity {
                     if (documentSnapshot.exists()) {
                         String userId = documentSnapshot.getString("user_id");
                         Long bgColorLong = documentSnapshot.getLong("background_color");
+                        status = BusinessCard.Status.valueOf(documentSnapshot.getString("status"));
                         int backgroundColor = (bgColorLong != null) ? bgColorLong.intValue() : 0xFFFFFFFF; // Белый по умолчанию
 
                         // Устанавливаем цвет фона
                         mainLayout.setBackgroundColor(backgroundColor);
                         backColor = backgroundColor;
                         ownerId = userId;
+
+                        if (isAdmin) {
+                            setupStatusSpinner(); // Инициализируем спиннер только если админ
+                            adminStatusSpinner.setSelection(STATUS_VALUES.indexOf(status));
+                            statusLayout.setVisibility(View.VISIBLE);
+                        }
 
                         if (userId != null) {
                             // Теперь загружаем JSON из Firebase Storage
@@ -892,6 +973,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         }
     }
 
+
     // ------------------ Buttons for admin/creator ---------------------------
 
 
@@ -954,4 +1036,81 @@ public class BusinessCardViewActivity extends AppCompatActivity {
             intent.putExtra(TemplateEditorActivity.EXTRA_CARD_ID, cardId);
             startActivityForResult(intent, REQUEST_EDIT);
     }
+
+
+    // ------------------ Hide button ---------------------------
+
+    private void resetTimer() {
+        handler.removeCallbacks(hideButtonRunnable); // Убираем старый таймер
+        if(isAdmin)         handler.postDelayed(hideButtonRunnable, 5000); // Запускаем новый на 2 секунды
+        else         handler.postDelayed(hideButtonRunnable, 2000); // Запускаем новый на 2 секунды
+
+    }
+
+    private void showButtonWithAnimation() {
+        if (btnMenu.getVisibility() != View.VISIBLE) {
+            btnMenu.setVisibility(View.VISIBLE);
+            animateFadeIn(btnMenu);
+        }
+        if (isAdmin) {
+            if (adminStatusSpinner.getVisibility() != View.VISIBLE) {
+                adminStatusSpinner.setVisibility(View.VISIBLE);
+                adminStatusBtn.setVisibility(View.VISIBLE);
+
+                adminStatusSpinner.requestLayout();
+                adminStatusSpinner.invalidate();
+
+                animateFadeIn(adminStatusSpinner);
+                animateFadeIn(adminStatusBtn);
+            }
+        }
+    }
+
+    private void animateFadeIn(View view) {
+        ObjectAnimator animator = ObjectAnimator.ofFloat(view, "alpha", 0f, 1f);
+        animator.setDuration(300);
+        animator.setInterpolator(new DecelerateInterpolator());
+        animator.start();
+    }
+
+
+    private void hideButtonWithAnimation() {
+        ObjectAnimator animator = ObjectAnimator.ofFloat(btnMenu, "alpha", 1f, 0f);
+        animator.setDuration(300);
+        animator.setInterpolator(new DecelerateInterpolator());
+        animator.start();
+
+        animator.addListener(new AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(Animator animation) {
+                btnMenu.setVisibility(View.GONE);
+            }
+        });
+
+        if(isAdmin){
+            animator = ObjectAnimator.ofFloat(adminStatusBtn, "alpha", 1f, 0f);
+            animator.setDuration(300);
+            animator.setInterpolator(new DecelerateInterpolator());
+            animator.start();
+
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    adminStatusBtn.setVisibility(View.GONE);
+                }
+            });
+            animator = ObjectAnimator.ofFloat(adminStatusSpinner, "alpha", 1f, 0f);
+            animator.setDuration(300);
+            animator.setInterpolator(new DecelerateInterpolator());
+            animator.start();
+
+            animator.addListener(new AnimatorListenerAdapter() {
+                @Override
+                public void onAnimationEnd(Animator animation) {
+                    adminStatusSpinner.setVisibility(View.GONE);
+                }
+            });
+        }
+    }
+
 }

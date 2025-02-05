@@ -11,11 +11,11 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.Fragment;
 
 import volosyuk.easybizcard.fragments.CardsFragment;
-import volosyuk.easybizcard.fragments.ReportsFragment;
+import volosyuk.easybizcard.fragments.UsersFragment;
 
 public class AdminPanelActivity extends AppCompatActivity {
 
-    ImageButton cardsButton, reportsButton, usersButton;
+    ImageButton cardsButton, usersButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,15 +29,13 @@ public class AdminPanelActivity extends AppCompatActivity {
         });
 
         cardsButton = findViewById(R.id.admin_panel_cards);
-        reportsButton = findViewById(R.id.admin_panel_reports);
-        //usersButton = findViewById(R.id.admin_panel_users);
+        usersButton = findViewById(R.id.admin_panel_users);
 
         replaceFragment(new CardsFragment());
 
         // Назначаем обработчики кнопкам
         cardsButton.setOnClickListener(view -> replaceFragment(new CardsFragment()));
-        reportsButton.setOnClickListener(view -> replaceFragment(new ReportsFragment()));
-        //usersButton.setOnClickListener(view -> replaceFragment(new UsersFragment()));
+        usersButton.setOnClickListener(view -> replaceFragment(new UsersFragment()));
     }
 
     // Метод для замены фрагментов

@@ -40,14 +40,26 @@ public class MyCardsAdapter extends RecyclerView.Adapter<MyCardsAdapter.MyCardsV
 
         // Заполнение данных для каждого элемента
         holder.cardId.setText(card.getId());
-        holder.cardStatus.setText(card.getStatus());
+        switch (card.getStatus()){
+            case PENDING:
+                holder.cardStatus.setText("На рассмотрении");
+                break;
+            case APPROVED:
+                holder.cardStatus.setText("Одобрено");
+                break;
+            case REJECTED:
+                holder.cardStatus.setText("Отклонено");
+                break;
+            default:
+                break;
+        }
 
         // Форматируем дату: "дд МММ гггг HH:mm"
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault());
-        holder.cardDate.setText(sdf.format(card.getCreatedAt()));
+        holder.cardDate.setText(sdf.format(card.getCreated_at()));
 
         // Отображаем user_id
-        holder.cardUserId.setText(card.getUserId());  // Отображаем user_id
+        holder.cardUserId.setText(card.getUser_id());  // Отображаем user_id
 
         // Добавляем обработчик клика на элемент
         holder.itemView.setOnClickListener(v -> {

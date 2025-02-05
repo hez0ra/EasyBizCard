@@ -7,8 +7,11 @@ public class User {
     public String email;
     public List<String> bookmarkedCards;
     public boolean admin;
+    public long createdAt;
+    public long lastVisit;
 
     public User(){
+
     }
 
     public User(String userId, String email, List<String> bookmarkedCards) {
@@ -16,6 +19,15 @@ public class User {
         this.email = email;
         this.bookmarkedCards = bookmarkedCards;
         this.admin = false;
+    }
+
+    public User(String userId, String email, List<String> bookmarkedCards, long createdAt, long lastVisit, boolean admin) {
+        this.userId = userId;
+        this.email = email;
+        this.bookmarkedCards = bookmarkedCards;
+        this.createdAt = createdAt;
+        this.lastVisit = lastVisit;
+        this.admin = admin;
     }
 
     public User(String userId, String email, List<String> bookmarkedCards, boolean admin) {
@@ -30,7 +42,6 @@ public class User {
     public void setAdmin(boolean admin) {
         this.admin = admin;
     }
-
 
     public String getEmail() {
         return email;
@@ -55,5 +66,21 @@ public class User {
 
     public void setBookmarkedCards(List<String> bookmarkedCards) {
         this.bookmarkedCards = bookmarkedCards;
+    }
+
+    public long getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(long createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public long getLastVisit() {
+        return lastVisit;
+    }
+
+    public void setLastVisit(long lastVisit) {
+        this.lastVisit = lastVisit;
     }
 }

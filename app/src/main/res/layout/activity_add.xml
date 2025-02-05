@@ -92,7 +92,7 @@
             android:layout_height="wrap_content"
             android:padding="10dp"
             android:background="@color/active"
-            android:src="@drawable/icon_add"/>
+            android:src="@drawable/icon_add_blue"/>
 
         <ImageButton
             android:id="@+id/add_to_scan"

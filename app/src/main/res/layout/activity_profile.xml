@@ -13,7 +13,7 @@
         android:layout_centerHorizontal="true"
         android:layout_marginTop="12dp"
         android:scaleType="centerCrop"
-        android:src="@drawable/minilogo"
+        android:src="@drawable/placeholder_image"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -93,7 +93,7 @@
             android:layout_weight="1"
             android:background="@color/active"
             android:padding="10dp"
-            android:src="@drawable/icon_profile" />
+            android:src="@drawable/icon_profile_blue" />
 
         <ImageButton
             android:id="@+id/profile_to_add"

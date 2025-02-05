@@ -60,7 +60,7 @@ public class UserRepository {
 
             // Создаем новый документ пользователя в коллекции "users"
             DocumentReference userRef = db.collection("users").document(userId);
-            userRef.set(new User(userId, email, null, false))
+            userRef.set(new User(userId, email, null, System.currentTimeMillis(), System.currentTimeMillis(), false))
                     .addOnSuccessListener(aVoid -> {
                         Log.d("EasyBizCard", "Пользователь успешно создан");
                         future.complete(null);
@@ -259,7 +259,15 @@ public class UserRepository {
         return future;
     }
 
+    // Метод для обновления lastVisit (время последнего визита)
+    public void updateLastVisit() {
+        String userId = auth.getCurrentUser().getUid();
 
+        db.collection("users").document(userId)
+                .update("lastVisit", System.currentTimeMillis())
+                .addOnSuccessListener(aVoid -> Log.d("EasyBizCard", "lastVisit успешно обновлено"))
+                .addOnFailureListener(e -> Log.e("EasyBizCard", "Ошибка при обновлении lastVisit", e));
+    }
 
 }
 

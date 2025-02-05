@@ -15,6 +15,8 @@ import com.google.firebase.storage.StorageReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import volosyuk.easybizcard.models.BusinessCard;
 import volosyuk.easybizcard.models.BusinessCardv0_5;
 
 public class BusinessCardRepository {
@@ -55,9 +57,9 @@ public class BusinessCardRepository {
 
 
     // Метод для получения всех визиток
-    public CompletableFuture<List<BusinessCardv0_5>> getAllBusinessCards() {
-        CompletableFuture<List<BusinessCardv0_5>> future = new CompletableFuture<>();
-        List<BusinessCardv0_5> businessCardv05List = new ArrayList<>();
+    public CompletableFuture<List<BusinessCard>> getAllBusinessCards() {
+        CompletableFuture<List<BusinessCard>> future = new CompletableFuture<>();
+        List<BusinessCard> businessCardList = new ArrayList<>();
 
         businessCardCollection.get()
                 .addOnCompleteListener(task -> {
@@ -65,11 +67,10 @@ public class BusinessCardRepository {
                         QuerySnapshot documents = task.getResult();
                         if (documents != null) {
                             for (QueryDocumentSnapshot document : documents) {
-                                BusinessCardv0_5 card = document.toObject(BusinessCardv0_5.class);
-                                card.setCardId(document.getId());
-                                businessCardv05List.add(card);
+                                BusinessCard card = document.toObject(BusinessCard.class);
+                                businessCardList.add(card);
                             }
-                            future.complete(businessCardv05List);
+                            future.complete(businessCardList);
                         }
                     }
                 });

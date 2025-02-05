@@ -148,8 +148,8 @@ public class ProfileActivity extends AppCompatActivity {
         });
 
         toBookmarks.setOnClickListener(v -> {
-            Intent intent = new Intent(this, MyCardsActivityv0_5.class);
-            intent.putExtra(MyCardsActivityv0_5.EXTRA_BOOKMARKS, true);
+            Intent intent = new Intent(this, MyCardsActivity.class);
+            intent.putExtra(MyCardsActivity.EXTRA_BOOKMARD, true);
             startActivity(intent);
             overridePendingTransition(0, 0);
             finish();
@@ -157,7 +157,6 @@ public class ProfileActivity extends AppCompatActivity {
 
         toAdminPanel.setOnClickListener(v -> {
             Intent intent = new Intent(this, AdminPanelActivity.class);
-            intent.putExtra(MyCardsActivityv0_5.EXTRA_BOOKMARKS, true);
             startActivity(intent);
         });
 

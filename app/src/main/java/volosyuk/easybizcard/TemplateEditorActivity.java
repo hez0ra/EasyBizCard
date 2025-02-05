@@ -104,9 +104,10 @@ import volosyuk.easybizcard.utils.AddElementBottomSheet;
 import volosyuk.easybizcard.utils.CountryManager;
 import volosyuk.easybizcard.utils.QRCodeGenerator;
 
-// TODO: изменение фона
-// TODO: экраны загрузок при сохранении и открытии
-
+// TODO: Экраны загрузок при сохранении и открытии
+// TODO: Заменить кнопку "добавить" в соц сетях на плюс или чото другое
+// TODO: Диалоговое окно для ввода названия при сохранении
+// TODO: ЕБАНЫЕ ГРАФИЧЕСКИЕ ЭЛЕМЕНТЫ
 
 public class TemplateEditorActivity extends AppCompatActivity {
 
@@ -2527,7 +2528,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("id", documentId);
         metadata.put("user_id", userId);
-        metadata.put("status", "обрабатывается");
+        metadata.put("status", "на рассмотрении");
         metadata.put("file_url", fileUrl);
         metadata.put("created_at", System.currentTimeMillis());
         metadata.put("background_color", selectedBackgroundColor);

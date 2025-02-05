@@ -7,5 +7,10 @@
         <item name="android:textColorPrimary">@color/white</item> <!-- Цвет текста на кнопках "положительных" действий -->
         <item name="android:textColorSecondary">@color/white</item> <!-- Цвет текста на кнопках "отрицательных" действий -->
     </style>
-
+    <style name="CustomPopupMenu" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@color/white</item>
+        <item name="android:textColor">@color/text</item>
+        <item name="android:itemBackground">@color/background</item>
+        <item name="android:buttonTint">@color/main</item>
+    </style>
 </resources>

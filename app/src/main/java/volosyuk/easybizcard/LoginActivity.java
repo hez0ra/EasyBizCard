@@ -70,6 +70,7 @@ public class LoginActivity extends AppCompatActivity {
 
         user = mAuth.getCurrentUser();
         if(user != null){
+            userRepository.updateLastVisit();
             Intent intent = new Intent(getApplicationContext(), ProfileActivity.class);
             startActivity(intent);
             finish();
