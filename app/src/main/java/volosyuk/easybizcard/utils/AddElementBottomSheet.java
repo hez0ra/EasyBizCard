@@ -59,6 +59,11 @@ public class AddElementBottomSheet extends BottomSheetDialogFragment {
             dismiss();
         });
 
+        view.findViewById(R.id.btn_add_divider).setOnClickListener(v -> {
+            if (listener != null) listener.onElementSelected("divider");
+            dismiss();
+        });
+
         return view;
     }
 }

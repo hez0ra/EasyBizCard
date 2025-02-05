@@ -17,6 +17,7 @@ public class BusinessCardElement implements Serializable {
     boolean isUnderline;
     boolean isStrikethrough;
     int alignment;
+    int width;
     List<String> links; // Для соцсетей
 
     // Конструктор для текстовых элементов (текст, номер телефона, email)
@@ -54,6 +55,15 @@ public class BusinessCardElement implements Serializable {
         this.isUnderline = isUnderline;
         this.isStrikethrough = isStrikethrough;
         this.alignment = alignment;
+    }
+
+    // Конструктор для разделителей
+    public BusinessCardElement(String type, int height, int width, int color, int alignment){
+        this.type = type;
+        this.textSize = height;
+        this.colorText = color;
+        this.alignment = alignment;
+        this.width = width;
     }
 
     // Конструктор для социальных сетей
@@ -172,5 +182,13 @@ public class BusinessCardElement implements Serializable {
 
     public void setLinks(List<String> links) {
         this.links = links;
+    }
+
+    public int getWidth() {
+        return width;
+    }
+
+    public void setWidth(int width) {
+        this.width = width;
     }
 }

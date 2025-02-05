@@ -19,6 +19,7 @@ public class BusinessCard {
     private int background_color;
     private long views;
     private long favorites;
+    private String title;
 
     // Сопоставление статусов с русскими названиями
     public static final Map<BusinessCard.Status, String> STATUS_LABELS = new HashMap<>();
@@ -115,5 +116,29 @@ public class BusinessCard {
 
     public void setFavorites(long favorites) {
         this.favorites = favorites;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public void setCreated_at(long created_at) {
+        this.created_at = created_at;
+    }
+
+    public void setFile_url(String file_url) {
+        this.file_url = file_url;
+    }
+
+    public void setUser_id(String user_id) {
+        this.user_id = user_id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
     }
 }

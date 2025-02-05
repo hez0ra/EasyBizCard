@@ -8,7 +8,11 @@ import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.app.ProgressDialog;
+import android.content.Context;
 import android.content.pm.PackageManager;
+
+import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 
 import android.app.AlertDialog;
@@ -29,6 +33,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.util.AttributeSet;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.Gravity;
@@ -58,6 +63,7 @@ import androidx.core.view.WindowInsetsCompat;
 
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.components.YAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
@@ -110,6 +116,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
     private Button adminStatusBtn;
     private BusinessCard.Status status;
     private FirebaseFirestore db;
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -164,7 +171,6 @@ public class BusinessCardViewActivity extends AppCompatActivity {
                 hideButtonWithAnimation(); // Анимация исчезновения
             }
         };
-
 
         loadBusinessCard(cardId);
         // Запускаем таймер при старте
@@ -255,6 +261,19 @@ public class BusinessCardViewActivity extends AppCompatActivity {
 
     // ------------------ Load elements ---------------------------
 
+    private void showLoadingDialog() {
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Загрузка...");
+        progressDialog.setCancelable(false);  // Блокируем действия
+        progressDialog.show();
+    }
+
+    private void hideLoadingDialog() {
+        if (progressDialog != null && progressDialog.isShowing()) {
+            progressDialog.dismiss();
+        }
+    }
+
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -270,6 +289,8 @@ public class BusinessCardViewActivity extends AppCompatActivity {
 
     private void loadBusinessCard(String documentId) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
+
+        showLoadingDialog();
 
         // Сначала получаем userId и backgroundColor из Firestore
         db.collection("business_cards").document(documentId)
@@ -314,8 +335,12 @@ public class BusinessCardViewActivity extends AppCompatActivity {
                 .addOnSuccessListener(bytes -> {
                     String json = new String(bytes, StandardCharsets.UTF_8);
                     parseBusinessCardJson(json);
+                    hideLoadingDialog();
                 })
-                .addOnFailureListener(e -> Log.e("FirebaseStorage", "Ошибка загрузки JSON", e));
+                .addOnFailureListener(e -> {
+                    Log.e("FirebaseStorage", "Ошибка загрузки JSON", e);
+                    hideLoadingDialog();
+                });
     }
 
     // Метод для парсинга JSON в объекты
@@ -349,6 +374,9 @@ public class BusinessCardViewActivity extends AppCompatActivity {
                     break;
                 case "email":
                     addEmailView(element);
+                    break;
+                case "divider":
+                    addDividerView(element);
                     break;
             }
         }
@@ -413,6 +441,39 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         });
 
         layoutContainer.addView(linkView);
+    }
+
+    private void addDividerView(BusinessCardElement element) {
+        // Создаем разделитель
+        View divider = new View(this);
+
+        // Конвертируем высоту и ширину в пиксели, используя плотность экрана
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                (int) (element.getWidth() * getResources().getDisplayMetrics().density),
+                (int) (element.getTextSize() * getResources().getDisplayMetrics().density)
+        );
+
+        // Устанавливаем цвет для разделителя
+        divider.setBackgroundColor(element.getColorText());
+
+        // Устанавливаем выравнивание
+        switch (element.getAlignment()) {
+            case Gravity.CENTER:
+                layoutParams.gravity = Gravity.CENTER_HORIZONTAL; // Выровнять по центру
+                break;
+            case Gravity.LEFT:
+                layoutParams.gravity = Gravity.START; // Выровнять по левому краю
+                break;
+            case Gravity.RIGHT:
+                layoutParams.gravity = Gravity.END; // Выровнять по правому краю
+                break;
+        }
+
+        // Устанавливаем параметры для разделителя
+        divider.setLayoutParams(layoutParams);
+
+        // Добавляем разделитель в контейнер
+        layoutContainer.addView(divider);
     }
 
     private void addSocialMediaView(BusinessCardElement element) {
@@ -1009,6 +1070,15 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         barChart.getXAxis().setValueFormatter(new IndexAxisValueFormatter(new String[]{"Просмотры", "Избранное"}));
         barChart.getDescription().setEnabled(false); // Убрать описание
         barChart.getAxisRight().setEnabled(false); // Отключить правую ось
+
+        // Настройка оси Y
+        YAxis leftAxis = barChart.getAxisLeft();
+        leftAxis.setAxisMinimum(0f); // Установить минимальное значение оси Y равным 0
+        leftAxis.setGranularity(1f); // Для корректного отображения шагов на оси Y
+
+        // Опционально: Если хотите установить максимальное значение оси Y в зависимости от данных
+        float maxValue = Math.max(viewsCount, favoritesCount);
+        leftAxis.setAxisMaximum(maxValue + 10); // Добавить небольшой запас сверху
 
         builder.setPositiveButton("OK", (dialog, which) -> dialog.dismiss());
         builder.show();

@@ -62,6 +62,7 @@ public class EditElementsAdapter extends RecyclerView.Adapter<EditElementsAdapte
             case "email": return "Email: " + element.getText();
             case "link": return "Ссылка: " + element.getHyperText();
             case "socialMedia": return "Соц. сети";
+            case "divider": return "Разделитель";
             default: return "Element";
         }
     }

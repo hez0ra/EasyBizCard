@@ -55,4 +55,12 @@
         android:layout_height="wrap_content"
         android:text="Социальные сети" />
 
+    <Button
+        android:id="@+id/btn_add_divider"
+        android:textColor="@color/main"
+        android:background="@android:color/transparent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Разделитель" />
+
 </LinearLayout>

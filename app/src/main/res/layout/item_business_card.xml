@@ -9,7 +9,7 @@
     android:elevation="4dp">
 
     <TextView
-        android:id="@+id/card_id"
+        android:id="@+id/card_name"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Card ID"
@@ -23,6 +23,7 @@
         android:layout_height="wrap_content"
         android:text="Status"
         android:textSize="14sp"
+        android:visibility="gone"
         android:textColor="@color/text" />
 
     <TextView
@@ -33,11 +34,12 @@
         android:textSize="12sp"
         android:textColor="@color/text"/>
 
+
     <TextView
-        android:id="@+id/card_user_id"
+        android:id="@+id/card_user_email"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="User ID"
+        android:text="User email"
         android:textSize="12sp"
         android:textColor="@color/text"/>
 </LinearLayout>

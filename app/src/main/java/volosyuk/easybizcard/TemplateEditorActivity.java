@@ -3,6 +3,7 @@ package volosyuk.easybizcard;
 import static volosyuk.easybizcard.utils.CountryManager.PHONE_CODES;
 
 import android.Manifest;
+import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
 import androidx.core.app.ActivityCompat;
 
@@ -98,6 +99,7 @@ import java.util.regex.Pattern;
 import volosyuk.easybizcard.adapters.CountryAdapter;
 import volosyuk.easybizcard.adapters.EditElementsAdapter;
 import volosyuk.easybizcard.adapters.SocialNetworkAdapter;
+import volosyuk.easybizcard.models.BusinessCard;
 import volosyuk.easybizcard.models.BusinessCardElement;
 import volosyuk.easybizcard.models.SocialNetwork;
 import volosyuk.easybizcard.utils.AddElementBottomSheet;
@@ -137,7 +139,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
     public static final float MM_TO_POINTS = 2.83465f;
     private Uri photoUri;
     String userId, cardId;
-    // Хранение выбранного выравнивания
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -179,6 +181,9 @@ public class TemplateEditorActivity extends AppCompatActivity {
                     case "social_media":
                         openSocialMediaDialog();
                         break;
+                    case "divider":
+                        openDividerDialog();
+                        break;
                 }
             });
             bottomSheet.show(getSupportFragmentManager(), "AddElementBottomSheet");
@@ -186,16 +191,16 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
         saveBtn = findViewById(R.id.btn_save_card);
         saveBtn.setOnClickListener(v -> {
-            if(layoutContainer.getChildAt(0) != null){
+            if (layoutContainer.getChildAt(0) != null) {
                 if (editExistedCard) {
                     cardId = getIntent().getStringExtra(EXTRA_CARD_ID);
                     updateBusinessCardInFirebase(cardId);
+                } else {
+                    showTitleInputDialog(); // Ввод названия визитки
                 }
-                else {
-                    saveBusinessCardToFirebase();
-                };
             }
         });
+
 
         editBtn = findViewById(R.id.btn_edit_elements);
         editBtn.setOnClickListener(v -> {
@@ -334,6 +339,9 @@ public class TemplateEditorActivity extends AppCompatActivity {
             case "email":
                 editEmailElement(position);
                 break;
+            case "divider":
+                editDividerElement(position);
+                break;
         }
     }
 
@@ -357,7 +365,43 @@ public class TemplateEditorActivity extends AppCompatActivity {
             case "email":
                 addEmailView(element);
                 break;
+            case "divider":
+                addDividerView(element);
+                break;
         }
+    }
+
+    private void addDividerView(BusinessCardElement element) {
+        // Создаем разделитель
+        View divider = new View(this);
+
+        // Конвертируем высоту и ширину в пиксели, используя плотность экрана
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                (int) (element.getWidth() * getResources().getDisplayMetrics().density),
+                (int) (element.getTextSize() * getResources().getDisplayMetrics().density)
+        );
+
+        // Устанавливаем цвет для разделителя
+        divider.setBackgroundColor(element.getColorText());
+
+        // Устанавливаем выравнивание
+        switch (element.getAlignment()) {
+            case Gravity.CENTER:
+                layoutParams.gravity = Gravity.CENTER_HORIZONTAL; // Выровнять по центру
+                break;
+            case Gravity.LEFT:
+                layoutParams.gravity = Gravity.START; // Выровнять по левому краю
+                break;
+            case Gravity.RIGHT:
+                layoutParams.gravity = Gravity.END; // Выровнять по правому краю
+                break;
+        }
+
+        // Устанавливаем параметры для разделителя
+        divider.setLayoutParams(layoutParams);
+
+        // Добавляем разделитель в контейнер
+        layoutContainer.addView(divider);
     }
 
     private void addTextView(BusinessCardElement element) {
@@ -556,8 +600,10 @@ public class TemplateEditorActivity extends AppCompatActivity {
                 isSelected = true;
             } else if (button.getId() == alignmentButtons[2].getId() && selectedAlignment[0] == Gravity.END) {
                 isSelected = true;
-            } else if (button.getId() == alignmentButtons[3].getId() && selectedAlignment[0] == Gravity.FILL_HORIZONTAL) {
-                isSelected = true;
+            } else if(alignmentButtons.length == 4){
+                if (button.getId() == alignmentButtons[3].getId() && selectedAlignment[0] == Gravity.FILL_HORIZONTAL) {
+                    isSelected = true;
+                }
             }
 
             // Обновляем визуальное состояние кнопки в зависимости от выбранного выравнивания
@@ -590,8 +636,10 @@ public class TemplateEditorActivity extends AppCompatActivity {
                     selectedAlignment[0] = Gravity.CENTER;
                 } else if (button.getId() == alignmentButtons[2].getId()) {
                     selectedAlignment[0] = Gravity.END;
-                } else if (button.getId() == alignmentButtons[3].getId()) {
-                    selectedAlignment[0] = Gravity.FILL_HORIZONTAL;
+                } else if (alignmentButtons.length == 4){
+                    if (button.getId() == alignmentButtons[3].getId()) {
+                        selectedAlignment[0] = Gravity.FILL_HORIZONTAL;
+                    }
                 }
             });
         }
@@ -636,52 +684,6 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
         adapter.setDropDownViewResource(R.layout.item_spinner);
         spinner.setAdapter(adapter);
-    }
-
-    // TODO: сделать запоминание выбранного семейства шрифта
-
-    private Typeface getCustomFont(String fontFamily) {
-        switch (fontFamily.toLowerCase()) {
-            // Встроенные шрифты
-            case "sans-serif":
-            case "sans-serif-light":
-            case "sans-serif-thin":
-            case "sans-serif-condensed":
-            case "sans-serif-medium":
-            case "sans-serif-black":
-            case "sans-serif-condensed-light":
-            case "sans-serif-condensed-medium":
-            case "serif":
-            case "monospace":
-            case "cursive":
-                return Typeface.create(fontFamily, Typeface.NORMAL);
-
-            // Кастомные шрифты
-            case "arimo":
-                return ResourcesCompat.getFont(this, R.font.arimo);
-            case "roboto":
-                return ResourcesCompat.getFont(this, R.font.roboto);
-            case "roboto condensed":
-                return ResourcesCompat.getFont(this, R.font.roboto_condensed);
-            case "caveat":
-                return ResourcesCompat.getFont(this, R.font.caveat);
-            case "comfortaa":
-                return ResourcesCompat.getFont(this, R.font.comfortaa);
-            case "great vibes":
-                return ResourcesCompat.getFont(this, R.font.great_vibes);
-            case "jura":
-                return ResourcesCompat.getFont(this, R.font.jura);
-            case "mulish":
-                return ResourcesCompat.getFont(this, R.font.mulish);
-            case "noto serif":
-                return ResourcesCompat.getFont(this, R.font.noto_serif);
-            case "playfair display":
-                return ResourcesCompat.getFont(this, R.font.playfair_display);
-
-            default:
-                // Возвращает стандартный шрифт, если не найдено
-                return Typeface.DEFAULT;
-        }
     }
 
     private void setupColorPicker(Button button, View preview) {
@@ -754,6 +756,52 @@ public class TemplateEditorActivity extends AppCompatActivity {
         });
     }
 
+    // TODO: сделать запоминание выбранного семейства шрифта
+
+    private Typeface getCustomFont(String fontFamily) {
+        switch (fontFamily.toLowerCase()) {
+            // Встроенные шрифты
+            case "sans-serif":
+            case "sans-serif-light":
+            case "sans-serif-thin":
+            case "sans-serif-condensed":
+            case "sans-serif-medium":
+            case "sans-serif-black":
+            case "sans-serif-condensed-light":
+            case "sans-serif-condensed-medium":
+            case "serif":
+            case "monospace":
+            case "cursive":
+                return Typeface.create(fontFamily, Typeface.NORMAL);
+
+            // Кастомные шрифты
+            case "arimo":
+                return ResourcesCompat.getFont(this, R.font.arimo);
+            case "roboto":
+                return ResourcesCompat.getFont(this, R.font.roboto);
+            case "roboto condensed":
+                return ResourcesCompat.getFont(this, R.font.roboto_condensed);
+            case "caveat":
+                return ResourcesCompat.getFont(this, R.font.caveat);
+            case "comfortaa":
+                return ResourcesCompat.getFont(this, R.font.comfortaa);
+            case "great vibes":
+                return ResourcesCompat.getFont(this, R.font.great_vibes);
+            case "jura":
+                return ResourcesCompat.getFont(this, R.font.jura);
+            case "mulish":
+                return ResourcesCompat.getFont(this, R.font.mulish);
+            case "noto serif":
+                return ResourcesCompat.getFont(this, R.font.noto_serif);
+            case "playfair display":
+                return ResourcesCompat.getFont(this, R.font.playfair_display);
+
+            default:
+                // Возвращает стандартный шрифт, если не найдено
+                return Typeface.DEFAULT;
+        }
+    }
+
     // Вспомогательные методы для поиска позиций в спиннерах
     private int getFontPosition(String font, Spinner fontFamilySpinner) {
         ArrayAdapter adapter = (ArrayAdapter) fontFamilySpinner.getAdapter();
@@ -767,6 +815,19 @@ public class TemplateEditorActivity extends AppCompatActivity {
             }
         }
         return 0;
+    }
+
+    private void showLoadingDialog() {
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setMessage("Загрузка...");
+        progressDialog.setCancelable(false);  // Блокируем действия
+        progressDialog.show();
+    }
+
+    private void hideLoadingDialog() {
+        if (progressDialog != null && progressDialog.isShowing()) {
+            progressDialog.dismiss();
+        }
     }
 
 
@@ -1006,6 +1067,151 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
         imageRef.delete();
     }
+
+
+    // ------------------ Divider ---------------------------
+
+
+    private void openDividerDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_divider, null);
+
+        // Инициализация элементов
+        EditText heightInput = dialogView.findViewById(R.id.divider_height_input);
+        EditText widthInput = dialogView.findViewById(R.id.divider_width_input);
+        Button colorPickerButton = dialogView.findViewById(R.id.divider_color_picker_button);
+        ImageButton alignLeft = dialogView.findViewById(R.id.align_left);
+        ImageButton alignCenter = dialogView.findViewById(R.id.align_center);
+        ImageButton alignRight = dialogView.findViewById(R.id.align_right);
+        View selectedColorPreview = dialogView.findViewById(R.id.divider_color_preview);
+
+        // Установка обработчиков для выравнивания
+        setupAlignmentButtons(new ImageButton[]{alignLeft, alignCenter, alignRight}, selectedAlignment);
+        setupColorPicker(colorPickerButton, selectedColorPreview);
+
+        AlertDialog dialog = builder.setView(dialogView)
+                .setTitle("Добавить разделитель")
+                .setPositiveButton("Добавить", null)
+                .setNegativeButton("Отменить", null)
+                .create();
+
+
+        // Меняем цвет текста на кнопках
+        dialog.setOnShowListener(dialogInterface -> {
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.text));  // Устанавливаем цвет текста для кнопки "Отменить"
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setOnClickListener( d -> {
+                // Получаем параметры
+                String height = heightInput.getText().toString().trim();
+                String width = widthInput.getText().toString().trim();
+
+                // Проверка на пустые строки
+                if (height.isEmpty() || width.isEmpty()) {
+                    Toast.makeText(this, "Пожалуйста, заполните все поля", Toast.LENGTH_SHORT).show();
+                }
+                else{
+                    // Добавление разделителя с параметрами
+                    addDividerElement(height, width, selectedTextColor, selectedAlignment[0]);
+                    dialog.dismiss();
+                }
+            });
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.text));  // Устанавливаем цвет текста для кнопки "Добавить"
+        });
+
+        dialog.show();
+    }
+
+    private void editDividerElement(int position) {
+        BusinessCardElement element = businessCardElements.get(position);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_divider, null);
+
+        // Инициализация элементов
+        EditText heightInput = dialogView.findViewById(R.id.divider_height_input);
+        EditText widthInput = dialogView.findViewById(R.id.divider_width_input);
+        Button colorPickerButton = dialogView.findViewById(R.id.divider_color_picker_button);
+        ImageButton alignLeft = dialogView.findViewById(R.id.align_left);
+        ImageButton alignCenter = dialogView.findViewById(R.id.align_center);
+        ImageButton alignRight = dialogView.findViewById(R.id.align_right);
+        View selectedColorPreview = dialogView.findViewById(R.id.divider_color_preview);
+
+        // Заполняем текущими значениями элемента
+        heightInput.setText(String.valueOf(element.getTextSize()));
+        widthInput.setText(String.valueOf(element.getWidth()));
+        selectedColorPreview.setBackgroundColor(element.getColorText());
+
+        selectedAlignment[0] = element.getAlignment();
+
+        // Установка обработчиков для выравнивания
+        setupAlignmentButtons(new ImageButton[]{alignLeft, alignCenter, alignRight}, selectedAlignment);
+        setupColorPicker(colorPickerButton, selectedColorPreview);
+
+        AlertDialog dialog = builder.setView(dialogView)
+                .setTitle("Редактирование разделителя")
+                .setPositiveButton("Сохранить", (s, which) -> {
+                    // Обновляем параметры разделителя
+                    element.setTextSize(Integer.parseInt(heightInput.getText().toString()));
+                    element.setWidth(Integer.parseInt(widthInput.getText().toString()));
+                    element.setColorText(selectedTextColor);
+                    element.setAlignment(selectedAlignment[0]);
+
+                    // Обновляем отображение
+                    adapter.notifyItemChanged(position);
+                    refreshLayout();
+                })
+                .setNegativeButton("Отменить", null)
+                .create();
+
+        // Меняем цвет текста на кнопках
+        dialog.setOnShowListener(dialogInterface -> {
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.text));
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.text));
+        });
+
+        dialog.show();
+    }
+
+
+    private void addDividerElement(String height, String width, int color, int alignment) {
+        // Преобразуем входные данные для использования
+        int dividerHeight = Integer.parseInt(height);
+        int dividerWidth = Integer.parseInt(width);
+
+        // Создаем разделитель
+        View divider = new View(this);
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                (int) (dividerWidth * getResources().getDisplayMetrics().density), (int) (dividerHeight * getResources().getDisplayMetrics().density));
+
+        // Устанавливаем цвет
+        divider.setBackgroundColor(color);
+
+        // Устанавливаем выравнивание
+        switch (alignment) {
+            case Gravity.CENTER:
+                layoutParams.gravity = Gravity.CENTER_HORIZONTAL; // Выровнять по центру
+                break;
+            case Gravity.LEFT:
+                layoutParams.gravity = Gravity.START; // Выровнять по левому краю
+                break;
+            case Gravity.RIGHT:
+                layoutParams.gravity = Gravity.END; // Выровнять по правому краю
+                break;
+        }
+
+        divider.setLayoutParams(layoutParams);
+
+        // Добавляем разделитель в контейнер
+        layoutContainer.addView(divider);
+        addDividerElementToJSON(dividerHeight, dividerWidth, color, alignment);
+    }
+
+
 
 
     // ------------------ Text ---------------------------
@@ -2401,6 +2607,17 @@ public class TemplateEditorActivity extends AppCompatActivity {
         businessCardElements.add(element);
     }
 
+    private void addDividerElementToJSON(int height, int width, int color, int alignment){
+        BusinessCardElement element = new BusinessCardElement(
+                "divider",
+                height,
+                width,
+                color,
+                alignment
+        );
+        businessCardElements.add(element);
+    }
+
     // Функция для добавления изображения
     private void addImageElementToJSON(String imageUrl) {
         BusinessCardElement element = new BusinessCardElement(
@@ -2495,43 +2712,48 @@ public class TemplateEditorActivity extends AppCompatActivity {
         businessCardElements.add(element);
     }
 
-    private void saveBusinessCardToFirebase() {
+    private void saveBusinessCardToFirebase(String title) {
+        // Показываем диалог загрузки
+        showLoadingDialog();
+
         // Преобразуем список элементов в JSON
         Gson gson = new Gson();
         String json = gson.toJson(businessCardElements);
 
-        if(cardId == null){
+        if (cardId == null) {
             cardId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
         }
 
         // Сохраняем JSON в Firebase Storage
         String filePath = "business_cards/" + userId + "/json_" + cardId + ".json";
-
         StorageReference storageRef = FirebaseStorage.getInstance().getReference().child(filePath);
+
         storageRef.putBytes(json.getBytes())
                 .addOnSuccessListener(taskSnapshot -> {
                     Log.d("Firebase", "JSON успешно загружен.");
                     storageRef.getDownloadUrl().addOnSuccessListener(uri -> {
                         // После успешной загрузки файла создаем документ в Firestore
-                        saveMetadataToFirestore(cardId, uri.toString());
+                        saveMetadataToFirestore(cardId, uri.toString(), title);
                     });
                 })
                 .addOnFailureListener(e -> {
                     Log.e("Firebase", "Ошибка загрузки JSON: " + e.getMessage());
+                    hideLoadingDialog();
                 });
     }
 
-    private void saveMetadataToFirestore(String documentId, String fileUrl) {
+    private void saveMetadataToFirestore(String documentId, String fileUrl, String title) {
         FirebaseFirestore db = FirebaseFirestore.getInstance();
 
         // Метаданные для документа
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("id", documentId);
         metadata.put("user_id", userId);
-        metadata.put("status", "на рассмотрении");
+        metadata.put("status", BusinessCard.Status.PENDING);
         metadata.put("file_url", fileUrl);
         metadata.put("created_at", System.currentTimeMillis());
         metadata.put("background_color", selectedBackgroundColor);
+        metadata.put("title", title);  // Добавляем название
 
         // Сохранение метаданных в Firestore
         db.collection("business_cards").document(documentId)
@@ -2539,11 +2761,14 @@ public class TemplateEditorActivity extends AppCompatActivity {
                 .addOnSuccessListener(aVoid -> {
                     Log.d("Firestore", "Metadata saved successfully with ID: " + documentId);
                     Toast.makeText(this, "Визитка успешно сохранена", Toast.LENGTH_LONG).show();
+                    hideLoadingDialog();
                 })
                 .addOnFailureListener(e -> {
                     Log.e("Firestore", "Error saving metadata", e);
+                    hideLoadingDialog();
                 });
     }
+
 
 
     // ------------------ Update information ---------------------------
@@ -2765,6 +2990,39 @@ public class TemplateEditorActivity extends AppCompatActivity {
         view.draw(canvas);
         return bitmap;
     }
+
+    private void showTitleInputDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_input_title, null);
+
+        EditText titleInput = dialogView.findViewById(R.id.title_input); // Поле для ввода названия
+
+        AlertDialog dialog = builder.setView(dialogView)
+                .setTitle("Введите название визитки")
+                .setPositiveButton("Сохранить", (d, which) -> {
+                    String title = titleInput.getText().toString().trim();
+
+                    if (title.isEmpty()) {
+                        Toast.makeText(this, "Пожалуйста, введите название", Toast.LENGTH_SHORT).show();
+                    } else {
+                        saveBusinessCardToFirebase(title); // Передаем название визитки
+                    }
+                })
+                .setNegativeButton("Отмена", null)
+                .create();
+
+        // Меняем цвет текста на кнопках
+        dialog.setOnShowListener(dialogInterface -> {
+            Button negativeButton = dialog.getButton(AlertDialog.BUTTON_NEGATIVE);
+            negativeButton.setTextColor(ContextCompat.getColor(this, R.color.text));  // Устанавливаем цвет текста для кнопки "Отменить"
+
+            Button positiveButton = dialog.getButton(AlertDialog.BUTTON_POSITIVE);
+            positiveButton.setTextColor(ContextCompat.getColor(this, R.color.text));  // Устанавливаем цвет текста для кнопки "Добавить"
+        });
+
+        dialog.show();
+    }
+
 
     private File saveBitmapToFile(Bitmap bitmap) throws IOException {
         File directory = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "BusinessCards");

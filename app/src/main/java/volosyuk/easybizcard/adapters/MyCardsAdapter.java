@@ -9,13 +9,18 @@ import android.widget.TextView;
 
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.firestore.FirebaseFirestore;
+
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 
 import volosyuk.easybizcard.BusinessCardViewActivity;
 import volosyuk.easybizcard.R;
 import volosyuk.easybizcard.models.BusinessCard;
+import volosyuk.easybizcard.utils.UserRepository;
 
 public class MyCardsAdapter extends RecyclerView.Adapter<MyCardsAdapter.MyCardsViewHolder> {
 
@@ -36,10 +41,22 @@ public class MyCardsAdapter extends RecyclerView.Adapter<MyCardsAdapter.MyCardsV
 
     @Override
     public void onBindViewHolder(MyCardsViewHolder holder, int position) {
+        FirebaseAuth mAuth =  FirebaseAuth.getInstance();
+        UserRepository userRepository = new UserRepository(FirebaseFirestore.getInstance(), mAuth);
         BusinessCard card = businessCards.get(position);
 
+        userRepository.isActiveUserAdmin().thenAccept(result -> {
+            if(result){
+                holder.cardStatus.setVisibility(View.VISIBLE);
+            }
+        });
+
+        if (Objects.equals(card.getUser_id(), mAuth.getCurrentUser().getUid())){
+            holder.cardStatus.setVisibility(View.VISIBLE);
+        }
+
         // Заполнение данных для каждого элемента
-        holder.cardId.setText(card.getId());
+        holder.cardName.setText(card.getTitle());
         switch (card.getStatus()){
             case PENDING:
                 holder.cardStatus.setText("На рассмотрении");
@@ -58,8 +75,9 @@ public class MyCardsAdapter extends RecyclerView.Adapter<MyCardsAdapter.MyCardsV
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault());
         holder.cardDate.setText(sdf.format(card.getCreated_at()));
 
-        // Отображаем user_id
-        holder.cardUserId.setText(card.getUser_id());  // Отображаем user_id
+        userRepository.getUserData().thenAccept(result -> {
+            holder.cardUserEmail.setText(result.getString("email"));
+        });
 
         // Добавляем обработчик клика на элемент
         holder.itemView.setOnClickListener(v -> {
@@ -83,14 +101,14 @@ public class MyCardsAdapter extends RecyclerView.Adapter<MyCardsAdapter.MyCardsV
     // Вьюхолдер для каждого элемента списка
     public static class MyCardsViewHolder extends RecyclerView.ViewHolder {
 
-        TextView cardId, cardStatus, cardDate, cardUserId;
+        TextView cardName, cardStatus, cardDate, cardUserEmail;
 
         public MyCardsViewHolder(View itemView) {
             super(itemView);
-            cardId = itemView.findViewById(R.id.card_id);
+            cardName = itemView.findViewById(R.id.card_name);
             cardStatus = itemView.findViewById(R.id.card_status);
             cardDate = itemView.findViewById(R.id.card_date);
-            cardUserId = itemView.findViewById(R.id.card_user_id);  // Поле для отображения user_id
+            cardUserEmail = itemView.findViewById(R.id.card_user_email);
         }
     }
 }

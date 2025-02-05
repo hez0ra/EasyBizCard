@@ -1,0 +1,104 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@color/background"
+    android:padding="16dp">
+
+    <!-- Ввод высоты -->
+    <EditText
+        android:id="@+id/divider_height_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Высота"
+        android:inputType="numberDecimal"
+        android:textColor="@color/black"
+        android:textColorHint="@color/text"
+        android:padding="8dp" />
+
+    <!-- Ввод ширины -->
+    <EditText
+        android:id="@+id/divider_width_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Ширина"
+        android:inputType="numberDecimal"
+        android:textColor="@color/black"
+        android:textColorHint="@color/text"
+        android:padding="8dp" />
+
+    <!-- Выбор выравнивания -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp">
+
+        <ImageButton
+            android:id="@+id/align_left"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_left"
+            android:contentDescription="Слева"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/align_center"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_center"
+            android:contentDescription="Центр"
+            android:layout_marginEnd="8dp" />
+
+        <ImageButton
+            android:id="@+id/align_right"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_icon_normal"
+            android:src="@drawable/icon_align_right"
+            android:contentDescription="Справа" />
+    </LinearLayout>
+
+    <!-- Выбор цвета разделителя -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="16dp"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Цвет разделителя"
+            android:textSize="16sp"
+            android:textColor="@color/text"/>
+
+        <View
+            android:id="@+id/divider_color_preview"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:layout_marginStart="16dp"
+            android:background="@color/black"
+            android:layout_gravity="center_vertical"/>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="0dp"/>
+
+        <Button
+            android:id="@+id/divider_color_picker_button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:text="Выбрать"
+            android:textColor="@color/white"
+            android:layout_gravity="end"
+            android:backgroundTint="@color/main"/>
+    </LinearLayout>
+
+</LinearLayout>

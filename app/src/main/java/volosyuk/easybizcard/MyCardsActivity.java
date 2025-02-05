@@ -192,7 +192,11 @@ public class MyCardsActivity extends AppCompatActivity {
         String user_id = document.getString("user_id");
         int backgroundColor = document.get("background_color", Long.class).intValue();
 
-        return new BusinessCard(id, createdAt, status, fileUrl, user_id, backgroundColor);
+        BusinessCard result = new BusinessCard(id, createdAt, status, fileUrl, user_id, backgroundColor);
+
+        result.setTitle(document.getString("title"));
+
+        return result;
     }
 
 
