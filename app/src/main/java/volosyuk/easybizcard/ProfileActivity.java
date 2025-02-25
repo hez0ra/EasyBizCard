@@ -1,5 +1,6 @@
 package volosyuk.easybizcard;
 
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
@@ -128,10 +129,9 @@ public class ProfileActivity extends AppCompatActivity {
         });
 
         toAdd.setOnClickListener(v ->{
-            Intent intent = new Intent(this, AddActivity.class);
+            Intent intent = new Intent(this, TemplateEditorActivity.class);
             startActivity(intent);
             overridePendingTransition(0, 0);
-            finish();
         });
 
         toMyCards.setOnClickListener(v ->{
@@ -143,7 +143,7 @@ public class ProfileActivity extends AppCompatActivity {
 
         toScan.setOnClickListener(v ->{
             Intent intent = new Intent(this, QRScannerActivity.class);
-            startActivityForResult(intent, 365);
+            startActivity(intent);
             overridePendingTransition(0, 0);
         });
 
@@ -173,6 +173,8 @@ public class ProfileActivity extends AppCompatActivity {
             if(result) toAdminPanel.setVisibility(View.VISIBLE);
         });
     }
+
+
 
     private void showChangePasswordDialog() {
         // Применение стиля к диалогу

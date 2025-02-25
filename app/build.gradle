@@ -30,6 +30,19 @@ android {
 
 }
 
+task getSha256 {
+    doLast {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            commandLine 'keytool', '-list', '-v', '-keystore', signingConfigs.debug.storeFile, '-alias', signingConfigs.debug.keyAlias, '-storepass', signingConfigs.debug.storePassword, '-keypass', signingConfigs.debug.keyPassword
+            standardOutput = stdout
+        }
+        def output = stdout.toString()
+        def sha256 = output.find(/SHA256:\s+([\w:]+)/) { it[1] }
+        println "SHA-256: $sha256"
+    }
+}
+
 dependencies {
 
     implementation libs.glide
@@ -48,12 +61,18 @@ dependencies {
     implementation libs.picasso
     implementation libs.exifinterface
     implementation libs.firebase.database
-    implementation libs.zxing.android.embedded // qr
+    implementation libs.zxing.android.embedded  // qr
     implementation libs.mpandroidchart // диаграммы
     implementation libs.ucrop // обработка фотографий
     implementation libs.libphonenumber // номера телефонов
     implementation libs.worldcountrydata // флаги стран
     implementation libs.gson // JSON
+    implementation libs.barcode.scanning // qr
+    implementation libs.camera.core
+    implementation libs.camera.camera2
+    implementation libs.camera.lifecycle
+    implementation libs.camera.view
+    implementation libs.guava
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

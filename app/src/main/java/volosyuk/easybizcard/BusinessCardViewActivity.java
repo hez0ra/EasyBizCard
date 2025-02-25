@@ -8,6 +8,7 @@ import android.Manifest;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ObjectAnimator;
+import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -27,6 +28,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.pdf.PdfDocument;
+import android.graphics.text.LineBreaker;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -57,6 +59,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.content.res.ResourcesCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
@@ -97,6 +100,7 @@ import volosyuk.easybizcard.utils.UserRepository;
 
 public class BusinessCardViewActivity extends AppCompatActivity {
 
+    private final int REQUEST_CODE_SEND_QR = 1203;
     public static final String EXTRA_ID = "card_id";
     private static final int REQUEST_WRITE_EXTERNAL_STORAGE = 1;
     private ConstraintLayout mainLayout;
@@ -129,7 +133,21 @@ public class BusinessCardViewActivity extends AppCompatActivity {
             return insets;
         });
 
-        cardId = getIntent().getStringExtra(EXTRA_ID);
+        Intent intent = getIntent();
+
+        cardId = intent.getStringExtra(EXTRA_ID);
+
+        Uri data = intent.getData();
+
+        if (data != null) {
+            ownerId = data.getPathSegments().get(0);  // Получаем userId
+            cardId = data.getPathSegments().get(1);  // Получаем cardId
+
+            Log.d("DeepLink", "User ID: " + ownerId);
+            Log.d("DeepLink", "Card ID: " + cardId);
+
+            // Здесь можно сделать запрос к серверу или перейти на другой экран, используя userId и cardId
+        }
 
         FirebaseAuth mAuth = FirebaseAuth.getInstance();
         db = FirebaseFirestore.getInstance();
@@ -143,8 +161,10 @@ public class BusinessCardViewActivity extends AppCompatActivity {
                 btnBookmark.setImageResource(R.drawable.icon_bookmark_remove);
             }
         });
+
         userRepository.isActiveUserAdmin().thenAccept(result -> {
             isAdmin = result;
+            loadBusinessCard(cardId);
         });
 
         mainLayout = findViewById(R.id.business_card_view);
@@ -163,7 +183,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
             updateCardStatus();
         });
 
-        setupMenu();
+
 
         handler = new Handler();
         hideButtonRunnable = () -> {
@@ -172,7 +192,6 @@ public class BusinessCardViewActivity extends AppCompatActivity {
             }
         };
 
-        loadBusinessCard(cardId);
         // Запускаем таймер при старте
         resetTimer();
 
@@ -185,6 +204,15 @@ public class BusinessCardViewActivity extends AppCompatActivity {
             return false;
         });
 
+        layoutContainer.setOnTouchListener((v, event) -> {
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                showButtonWithAnimation(); // Анимация появления
+                resetTimer(); // Перезапуск таймера
+            }
+            return false;
+        });
+
+        businessCardRepository.updateViewsCount(cardId);
     }
 
     private void setupMenu() {
@@ -298,32 +326,56 @@ public class BusinessCardViewActivity extends AppCompatActivity {
                 .addOnSuccessListener(documentSnapshot -> {
                     if (documentSnapshot.exists()) {
                         String userId = documentSnapshot.getString("user_id");
-                        Long bgColorLong = documentSnapshot.getLong("background_color");
+                        ownerId = userId;
                         status = BusinessCard.Status.valueOf(documentSnapshot.getString("status"));
-                        int backgroundColor = (bgColorLong != null) ? bgColorLong.intValue() : 0xFFFFFFFF; // Белый по умолчанию
 
+                        if(!isAdmin && !status.equals(BusinessCard.Status.APPROVED) && !Objects.equals(ownerId, currentUserId)){
+                            TextView statusMsg = findViewById(R.id.status_message);
+                            statusMsg.setVisibility(View.VISIBLE);
+                            switch (status){
+                                case REJECTED:
+                                    statusMsg.setText("Данная визитка не прошла проверку администрацией");
+                                    hideLoadingDialog();
+                                    return;
+                                case PENDING:
+                                    statusMsg.setText("Данная визитка проходит проверку администрацией");
+                                    hideLoadingDialog();
+                                    return;
+                                case APPROVED:
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        setupMenu();
+                        Long bgColorLong = documentSnapshot.getLong("background_color");
+                        int backgroundColor = (bgColorLong != null) ? bgColorLong.intValue() : 0xFFFFFFFF; // Белый по умолчанию
                         // Устанавливаем цвет фона
                         mainLayout.setBackgroundColor(backgroundColor);
                         backColor = backgroundColor;
-                        ownerId = userId;
-
                         if (isAdmin) {
                             setupStatusSpinner(); // Инициализируем спиннер только если админ
                             adminStatusSpinner.setSelection(STATUS_VALUES.indexOf(status));
                             statusLayout.setVisibility(View.VISIBLE);
                         }
-
                         if (userId != null) {
                             // Теперь загружаем JSON из Firebase Storage
                             loadBusinessCardFromStorage(userId, documentId);
                         } else {
                             Log.e("Firestore", "user_id не найден!");
                         }
-                    } else {
+                    }
+                    else {
                         Log.e("Firestore", "Документ не найден в Firestore!");
+                        hideLoadingDialog();
+                        finish();
                     }
                 })
-                .addOnFailureListener(e -> Log.e("Firestore", "Ошибка при получении данных из Firestore", e));
+                .addOnFailureListener(e -> {
+                    Log.e("Firestore", "Ошибка при получении данных из Firestore", e);
+                    hideLoadingDialog();
+                    finish();
+                });
     }
 
     // Метод загрузки JSON-файла из Firebase Storage
@@ -340,6 +392,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
                 .addOnFailureListener(e -> {
                     Log.e("FirebaseStorage", "Ошибка загрузки JSON", e);
                     hideLoadingDialog();
+                    finish();
                 });
     }
 
@@ -386,12 +439,30 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         TextView textView = new TextView(this);
         textView.setText(element.getText());
         textView.setTextSize(element.getTextSize());
-        textView.setTypeface(Typeface.create(element.getFontFamily(), Typeface.NORMAL));
         textView.setTextColor(element.getColorText());
-        textView.setGravity(element.getAlignment());
+        int style = Typeface.NORMAL;
+        if (element.isBold()) style |= Typeface.BOLD;
+        if (element.isItalic()) style |= Typeface.ITALIC;
+        textView.setTypeface(Typeface.create(getCustomFont(element.getFontFamily()), style));
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.gravity = element.getAlignment();
+        textView.setLayoutParams(params);
+        // Устанавливаем ширину на MATCH_PARENT при justify
+        if (element.getAlignment() == Gravity.FILL_HORIZONTAL) {
+            textView.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            ));
 
-        if (element.isBold()) textView.setTypeface(textView.getTypeface(), Typeface.BOLD);
-        if (element.isItalic()) textView.setTypeface(textView.getTypeface(), Typeface.ITALIC);
+            // Justify работает с API 26+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                textView.setJustificationMode(LineBreaker.JUSTIFICATION_MODE_INTER_WORD);
+            }
+        } else {
+            textView.setGravity(element.getAlignment());
+        }
+
         if (element.isUnderline()) textView.setPaintFlags(textView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         if (element.isStrikethrough()) textView.setPaintFlags(textView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
 
@@ -418,12 +489,17 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         TextView linkView = new TextView(this);
         linkView.setText(element.getHyperText());
         linkView.setTextSize(element.getTextSize());
-        linkView.setTypeface(Typeface.create(element.getFontFamily(), Typeface.NORMAL));
         linkView.setTextColor(element.getColorText());
-        linkView.setGravity(element.getAlignment());
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.gravity = element.getAlignment();
+        linkView.setLayoutParams(params);
 
-        if (element.isBold()) linkView.setTypeface(linkView.getTypeface(), Typeface.BOLD);
-        if (element.isItalic()) linkView.setTypeface(linkView.getTypeface(), Typeface.ITALIC);
+        int style = Typeface.NORMAL;
+        if (element.isBold()) style |= Typeface.BOLD;
+        if (element.isItalic()) style |= Typeface.ITALIC;
+        linkView.setTypeface(Typeface.create(getCustomFont(element.getFontFamily()), style));
+
         if (element.isUnderline()) linkView.setPaintFlags(linkView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         if (element.isStrikethrough()) linkView.setPaintFlags(linkView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
 
@@ -560,12 +636,18 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         TextView phoneView = new TextView(this);
         phoneView.setText(element.getText());
         phoneView.setTextSize(element.getTextSize());
-        phoneView.setTypeface(Typeface.create(element.getFontFamily(), Typeface.NORMAL));
         phoneView.setTextColor(element.getColorText());
-        phoneView.setGravity(element.getAlignment());
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.gravity = element.getAlignment();
+        phoneView.setLayoutParams(params);
 
-        if (element.isBold()) phoneView.setTypeface(phoneView.getTypeface(), Typeface.BOLD);
-        if (element.isItalic()) phoneView.setTypeface(phoneView.getTypeface(), Typeface.ITALIC);
+
+        int style = Typeface.NORMAL;
+        if (element.isBold()) style |= Typeface.BOLD;
+        if (element.isItalic()) style |= Typeface.ITALIC;
+        phoneView.setTypeface(Typeface.create(getCustomFont(element.getFontFamily()), style));
+
         if (element.isUnderline()) phoneView.setPaintFlags(phoneView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         if (element.isStrikethrough()) phoneView.setPaintFlags(phoneView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
 
@@ -582,12 +664,17 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         TextView emailView = new TextView(this);
         emailView.setText(element.getText());
         emailView.setTextSize(element.getTextSize());
-        emailView.setTypeface(Typeface.create(element.getFontFamily(), Typeface.NORMAL));
         emailView.setTextColor(element.getColorText());
-        emailView.setGravity(element.getAlignment());
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.gravity = element.getAlignment();
+        emailView.setLayoutParams(params);
 
-        if (element.isBold()) emailView.setTypeface(emailView.getTypeface(), Typeface.BOLD);
-        if (element.isItalic()) emailView.setTypeface(emailView.getTypeface(), Typeface.ITALIC);
+        int style = Typeface.NORMAL;
+        if (element.isBold()) style |= Typeface.BOLD;
+        if (element.isItalic()) style |= Typeface.ITALIC;
+        emailView.setTypeface(Typeface.create(getCustomFont(element.getFontFamily()), style));
+
         if (element.isUnderline()) emailView.setPaintFlags(emailView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         if (element.isStrikethrough()) emailView.setPaintFlags(emailView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
 
@@ -619,7 +706,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
 
     private void share() {
         // Массив вариантов для отображения
-        final String[] shareOptions = {"Ссылкой", "Как изображение", "Как PDF файл"};
+        final String[] shareOptions = {"Ссылкой", "Как изображение", "Как PDF файл", "Показать QR-код"};
 
         new AlertDialog.Builder(this, R.style.CustomAlertDialog)
                 .setTitle("Поделиться визиткой")
@@ -634,6 +721,9 @@ public class BusinessCardViewActivity extends AppCompatActivity {
                         case 2: // PDF
                             sharePdf();
                             break;
+                        case 3:
+                            showQRCode(QRCodeGenerator.generateQRCode(cardId));
+                            break;
                     }
                 })
                 .setNegativeButton("Отмена", null)
@@ -644,7 +734,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
     private void shareLink() {
         try {
             // Формируем ссылку
-            String baseUrl = "https://easybizcard.com/";
+            String baseUrl = "https://easybizcardweb.onrender.com/";
             String shareUrl = baseUrl + ownerId + "/" + cardId;
 
             // Создаем интент для шаринга
@@ -672,6 +762,23 @@ public class BusinessCardViewActivity extends AppCompatActivity {
 
     private void sharePdf(){
         checkPermissionsAndGeneratePdf();
+    }
+
+    private void showQRCode(Bitmap qrBitmap) {
+        // Создаём диалог для отображения QR-кода
+        Dialog qrDialog = new Dialog(this);
+        qrDialog.setContentView(R.layout.dialog_qr_code);  // Здесь ваш layout для QR-кода
+        qrDialog.setCancelable(true);
+
+        ImageView qrImageView = qrDialog.findViewById(R.id.qrImageView);
+        Button qrShare = qrDialog.findViewById(R.id.qrShare);
+        qrShare.setOnClickListener(v -> {
+            QRCodeGenerator.sendQrCodeAsImage(this, qrBitmap, REQUEST_CODE_SEND_QR);
+        });
+
+        qrImageView.setImageBitmap(qrBitmap);
+
+        qrDialog.show();
     }
 
     private void prepareLayoutToExport(){
@@ -736,7 +843,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
 
         prepareLayoutToExport();
 
-        Bitmap QRbitmap = QRCodeGenerator.generateQRCode("https://easybizcard/" + ownerId + "/" + cardId);
+        Bitmap QRbitmap = QRCodeGenerator.generateQRCode("https://easybizcardweb.onrender.com/" + ownerId + "/" + cardId);
         QRimage.setImageBitmap(QRbitmap);
         layoutContainer.addView(QRimage);
 
@@ -963,7 +1070,7 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         if (isQrPage) {
             // Генерация QR-кода
             if (cardId == null) cardId = FirebaseFirestore.getInstance().collection("business_cards").document().getId();
-            Bitmap qrBitmap = QRCodeGenerator.generateQRCode("https://easybizcard.com/" + ownerId + "/" + cardId);
+            Bitmap qrBitmap = QRCodeGenerator.generateQRCode("https://easybizcardweb.onrender.com/" + ownerId + "/" + cardId);
 
             if (qrBitmap != null) {
                 // Масштабирование QR-кода
@@ -1143,7 +1250,6 @@ public class BusinessCardViewActivity extends AppCompatActivity {
         animator.start();
     }
 
-
     private void hideButtonWithAnimation() {
         ObjectAnimator animator = ObjectAnimator.ofFloat(btnMenu, "alpha", 1f, 0f);
         animator.setDuration(300);
@@ -1182,5 +1288,50 @@ public class BusinessCardViewActivity extends AppCompatActivity {
             });
         }
     }
+
+    private Typeface getCustomFont(String fontFamily) {
+        switch (fontFamily.toLowerCase()) {
+            // Встроенные шрифты
+            case "sans-serif":
+            case "sans-serif-light":
+            case "sans-serif-thin":
+            case "sans-serif-condensed":
+            case "sans-serif-medium":
+            case "sans-serif-black":
+            case "sans-serif-condensed-light":
+            case "sans-serif-condensed-medium":
+            case "serif":
+            case "monospace":
+            case "cursive":
+                return Typeface.create(fontFamily, Typeface.NORMAL);
+
+            // Кастомные шрифты
+            case "arimo":
+                return ResourcesCompat.getFont(this, R.font.arimo);
+            case "roboto":
+                return ResourcesCompat.getFont(this, R.font.roboto);
+            case "roboto condensed":
+                return ResourcesCompat.getFont(this, R.font.roboto_condensed);
+            case "caveat":
+                return ResourcesCompat.getFont(this, R.font.caveat);
+            case "comfortaa":
+                return ResourcesCompat.getFont(this, R.font.comfortaa);
+            case "great vibes":
+                return ResourcesCompat.getFont(this, R.font.great_vibes);
+            case "jura":
+                return ResourcesCompat.getFont(this, R.font.jura);
+            case "mulish":
+                return ResourcesCompat.getFont(this, R.font.mulish);
+            case "noto serif":
+                return ResourcesCompat.getFont(this, R.font.noto_serif);
+            case "playfair display":
+                return ResourcesCompat.getFont(this, R.font.playfair_display);
+
+            default:
+                // Возвращает стандартный шрифт, если не найдено
+                return Typeface.DEFAULT;
+        }
+    }
+
 
 }

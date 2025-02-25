@@ -3,8 +3,12 @@ package volosyuk.easybizcard;
 import static volosyuk.easybizcard.utils.CountryManager.PHONE_CODES;
 
 import android.Manifest;
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.pm.PackageManager;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.app.ActivityCompat;
 
 import android.app.AlertDialog;
@@ -69,6 +73,7 @@ import com.flask.colorpicker.builder.ColorPickerClickListener;
 import com.flask.colorpicker.builder.ColorPickerDialogBuilder;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.storage.FirebaseStorage;
@@ -105,15 +110,14 @@ import volosyuk.easybizcard.models.SocialNetwork;
 import volosyuk.easybizcard.utils.AddElementBottomSheet;
 import volosyuk.easybizcard.utils.CountryManager;
 import volosyuk.easybizcard.utils.QRCodeGenerator;
+import volosyuk.easybizcard.utils.ScalableImageView;
 
-// TODO: Экраны загрузок при сохранении и открытии
 // TODO: Заменить кнопку "добавить" в соц сетях на плюс или чото другое
-// TODO: Диалоговое окно для ввода названия при сохранении
-// TODO: ЕБАНЫЕ ГРАФИЧЕСКИЕ ЭЛЕМЕНТЫ
 
 public class TemplateEditorActivity extends AppCompatActivity {
 
-    private final String domen = "https:/easybizcard.com/";
+    private static final int REQUEST_CAMERA_PERMISSION = 7;
+    private final String domen = "https://easybizcardweb.onrender.com/";
     public static final String EXTRA_CARD = "card_elements";
     public static final String EXTRA_CARD_ID = "card_id";
     public static final String EXTRA_CARD_BACK = "card_background";
@@ -194,6 +198,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
             if (layoutContainer.getChildAt(0) != null) {
                 if (editExistedCard) {
                     cardId = getIntent().getStringExtra(EXTRA_CARD_ID);
+                    showLoadingDialog();
                     updateBusinessCardInFirebase(cardId);
                 } else {
                     showTitleInputDialog(); // Ввод названия визитки
@@ -408,12 +413,28 @@ public class TemplateEditorActivity extends AppCompatActivity {
         TextView textView = new TextView(this);
         textView.setText(element.getText());
         textView.setTextSize(element.getTextSize());
-        textView.setTypeface(Typeface.create(element.getFontFamily(), Typeface.NORMAL));
         textView.setTextColor(element.getColorText());
-        textView.setGravity(element.getAlignment());
+        // Устанавливаем ширину на MATCH_PARENT при justify
+        if (element.getAlignment() == Gravity.FILL_HORIZONTAL) {
+            textView.setLayoutParams(new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+            ));
 
-        if (element.isBold()) textView.setTypeface(textView.getTypeface(), Typeface.BOLD);
-        if (element.isItalic()) textView.setTypeface(textView.getTypeface(), Typeface.ITALIC);
+            // Justify работает с API 26+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                textView.setJustificationMode(LineBreaker.JUSTIFICATION_MODE_INTER_WORD);
+            }
+        } else {
+            textView.setGravity(element.getAlignment());
+        }
+
+        // Применяем стиль шрифта
+        int style = Typeface.NORMAL;
+        if (element.isBold()) style |= Typeface.BOLD;
+        if (element.isItalic()) style |= Typeface.ITALIC;
+        textView.setTypeface(Typeface.create(getCustomFont(element.getFontFamily()), style));
+
         if (element.isUnderline()) textView.setPaintFlags(textView.getPaintFlags() | Paint.UNDERLINE_TEXT_FLAG);
         if (element.isStrikethrough()) textView.setPaintFlags(textView.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
 
@@ -833,8 +854,6 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
     // ------------------ Image ---------------------------
 
-    // TODO: При выборе источника камера фотка добавляется с гигантскими отступами
-
     private void openImagePicker() {
         // Создаем диалог
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
@@ -874,8 +893,12 @@ public class TemplateEditorActivity extends AppCompatActivity {
     }
 
     private void openCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
+            return; // Ждем разрешение перед запуском камеры
+        }
+
         Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (cameraIntent.resolveActivity(getPackageManager()) != null) {
             try {
                 // Создание временного файла для фото
                 File photoFile = createImageFile();
@@ -883,14 +906,32 @@ public class TemplateEditorActivity extends AppCompatActivity {
                     // Получение URI для файла с помощью FileProvider
                     photoUri = FileProvider.getUriForFile(this, "volosyuk.easybizcard.fileprovider", photoFile);
                     cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoUri);
-                    startActivityForResult(cameraIntent, REQUEST_CAMERA);
+                    cameraLauncher.launch(cameraIntent); // Запуск через ActivityResultLauncher
                 }
             } catch (IOException e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Не удалось создать файл для фото", Toast.LENGTH_SHORT).show();
             }
-        }
+
     }
+
+    private final ActivityResultLauncher<Intent> cameraLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    if (photoUri != null) {
+                        try {
+                            Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), photoUri);
+                            // Обрабатываем фото, например, устанавливаем в ImageView
+                            compressAndEditImage(photoUri);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                            Toast.makeText(this, "Ошибка загрузки фото", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                } else {
+                    Toast.makeText(this, "Съемка отменена", Toast.LENGTH_SHORT).show();
+                }
+            });
 
     private File createImageFile() throws IOException {
         // Имя файла
@@ -901,7 +942,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         File storageDir = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
 
         // Создание файла
-        return File.createTempFile(imageFileName, ".jpg", storageDir);
+        return File.createTempFile(imageFileName, ".png", storageDir);
     }
 
     private void openGallery() {
@@ -942,8 +983,9 @@ public class TemplateEditorActivity extends AppCompatActivity {
     }
 
     private void imageRedactor(Uri sourceUri) {
-        Uri destinationUri = Uri.fromFile(new File(getCacheDir(), "formated.jpg"));
+        Uri destinationUri = Uri.fromFile(new File(getCacheDir(), "formated.png"));
         UCrop.Options options = new UCrop.Options();
+        options.setCompressionFormat(Bitmap.CompressFormat.PNG);
         options.setToolbarColor(ContextCompat.getColor(this, R.color.white));
         options.setStatusBarColor(ContextCompat.getColor(this, R.color.black));
         options.setActiveControlsWidgetColor(ContextCompat.getColor(this, R.color.main));
@@ -970,27 +1012,49 @@ public class TemplateEditorActivity extends AppCompatActivity {
         int width = bitmap.getWidth();
         int height = bitmap.getHeight();
         float scale = Math.min((float) maxWidth / width, (float) maxHeight / height);
-        return Bitmap.createScaledBitmap(bitmap, (int) (width * scale), (int) (height * scale), true);
+
+        // Создаем новый Bitmap с поддержкой прозрачности
+        Bitmap resizedBitmap = Bitmap.createBitmap((int) (width * scale), (int) (height * scale), Bitmap.Config.ARGB_8888);
+
+        Canvas canvas = new Canvas(resizedBitmap);
+        Paint paint = new Paint(Paint.FILTER_BITMAP_FLAG);
+        canvas.drawBitmap(Bitmap.createScaledBitmap(bitmap, (int) (width * scale), (int) (height * scale), true), 0, 0, paint);
+
+        return resizedBitmap;
     }
 
     private Uri saveBitmapToCache(Bitmap bitmap) throws IOException {
-        File cacheFile = new File(getCacheDir(), "compressed.jpg");
+        File cacheFile = new File(getCacheDir(), "compressed.png");
         FileOutputStream out = new FileOutputStream(cacheFile);
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 80, out);
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, out);
         out.flush();
         out.close();
         return Uri.fromFile(cacheFile);
     }
 
     private void addImageElement(Uri imageUri) {
-        ImageView imageView = new ImageView(this);
+        ScalableImageView imageView = new ScalableImageView(this);
         imageView.setImageURI(imageUri);
-        imageView.setLayoutParams(new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
+        // Используем LinearLayout.LayoutParams с параметрами для центрирования
+        LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT
-        ));
-        layoutContainer.addView(imageView); // Добавляем ImageView в LinearLayout
+        );
+        layoutParams.gravity = Gravity.CENTER; // Центрируем элемент
 
+        imageView.setLayoutParams(layoutParams);
+
+
+        Snackbar snackbar = Snackbar.make(layoutContainer, "Изменяйте размер изображения с помощью пальцев", Snackbar.LENGTH_LONG);
+        int mainColor = ContextCompat.getColor(this, R.color.main);
+        snackbar.setBackgroundTint(mainColor);
+        TextView textView = snackbar.getView().findViewById(com.google.android.material.R.id.snackbar_text);
+        textView.setTextColor(Color.WHITE); // Белый цвет для текста
+
+        snackbar.show();
+
+
+        layoutContainer.addView(imageView); // Добавляем в контейнер
         uploadImageToFirebase(imageUri);
     }
 
@@ -998,7 +1062,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         if (imageUri == null) return;
 
         // Генерируем уникальное имя файла
-        String fileName = "images/" + UUID.randomUUID().toString() + ".jpg";
+        String fileName = "images/" + UUID.randomUUID().toString() + ".png";
 
         // Ссылка на Firebase Storage
         StorageReference storageRef = FirebaseStorage.getInstance().getReference().child(fileName);
@@ -1023,7 +1087,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         if (imageUri == null) return;
 
         // Генерируем уникальное имя файла
-        String fileName = "images/" + UUID.randomUUID().toString() + ".jpg";
+        String fileName = "images/" + UUID.randomUUID().toString() + ".png";
 
         // Ссылка на Firebase Storage
         StorageReference storageRef = FirebaseStorage.getInstance().getReference().child(fileName);
@@ -1539,6 +1603,12 @@ public class TemplateEditorActivity extends AppCompatActivity {
         selectedTextSize = element.getTextSize();
         selectedAlignment[0] = element.getAlignment();
 
+        // Установка стилей
+        btnBold.setSelected(element.isBold());
+        btnItalic.setSelected(element.isItalic());
+        btnUnderline.setSelected(element.isUnderline());
+        btnStrikethrough.setSelected(element.isStrikethrough());
+
         // Парсинг номера
         String fullPhoneNumber = element.getText();
         String countryCode = "";
@@ -1569,12 +1639,6 @@ public class TemplateEditorActivity extends AppCompatActivity {
         countrySpinner.setSelection(countryPosition);
 
         phoneInput.setText(localNumber);
-
-        // Установка стилей
-        btnBold.setSelected(element.isBold());
-        btnItalic.setSelected(element.isItalic());
-        btnUnderline.setSelected(element.isUnderline());
-        btnStrikethrough.setSelected(element.isStrikethrough());
 
         // Установка обработчиков
         setupButtonToggle(btnBold);
@@ -1846,8 +1910,6 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
         selectedColorPreview.setBackgroundColor(selectedTextColor);
 
-        if(FirebaseAuth.getInstance().getCurrentUser().getEmail() != null) emailInput.setText(FirebaseAuth.getInstance().getCurrentUser().getEmail());
-
         AlertDialog dialog = builder.setView(dialogView)
                 .setTitle("Изменить электронную почту")
                 .setPositiveButton("Сохранить", null)
@@ -2079,6 +2141,12 @@ public class TemplateEditorActivity extends AppCompatActivity {
         selectedTextSize = element.getTextSize();
         selectedAlignment[0] = element.getAlignment();
 
+        // Установка стилей
+        btnBold.setSelected(element.isBold());
+        btnItalic.setSelected(element.isItalic());
+        btnUnderline.setSelected(element.isUnderline());
+        btnStrikethrough.setSelected(element.isStrikethrough());
+
         // Установка обработчиков
         setupButtonToggle(btnBold);
         setupButtonToggle(btnItalic);
@@ -2287,6 +2355,8 @@ public class TemplateEditorActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_add_social_media, null);
 
+        addedSocialMedia.clear();
+
         RecyclerView recyclerView = dialogView.findViewById(R.id.recycler_social_media);
 
         setupRecyclerSocialMedia(recyclerView);
@@ -2319,62 +2389,61 @@ public class TemplateEditorActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this, R.style.CustomAlertDialog);
         builder.setTitle("Добавить/Изменить " + socialNetwork.getName());
 
+        String placeholder = socialNetwork.getUrlTemplate().contains("{phone}") ? "телефон" : "юзернейм";
+
+        // Создание контейнера для элементов
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 30, 50, 30);
+
         // Создание EditText для ввода
         EditText input = new EditText(this);
-
-        int index = addedSocialMedia.indexOf(socialNetwork);
+        input.setTextColor(getResources().getColor(R.color.text));
+        input.setHintTextColor(getResources().getColor(R.color.second));
+        input.setHint("Введите ссылку или " + placeholder);
 
         // Проверяем, есть ли уже добавленная ссылка
         String currentLink = socialNetwork.getLink();
         if (currentLink != null && !currentLink.isEmpty()) {
-            // Если ссылка есть, извлекаем id (username или phone) из шаблона
-            String placeholder = socialNetwork.getUrlTemplate().contains("{phone}") ? "{phone}" : "{username}";
-            String existingValue = currentLink.replace(
-                    socialNetwork.getUrlTemplate().replace(placeholder, ""),
-                    ""
-            );
-            input.setText(existingValue); // Устанавливаем значение в EditText
+            input.setText(currentLink); // Если есть, вставляем в поле
         }
 
-        // Настройка подсказки и типа ввода в зависимости от соцсети
-        if (socialNetwork.getUrlTemplate().contains("{phone}")) {
-            input.setHint("Введите телефон");
-            input.setInputType(InputType.TYPE_CLASS_PHONE); // Ввод только цифр
-        } else if (socialNetwork.getUrlTemplate().contains("{username}")) {
-            input.setHint("Введите юзернейм");
-            input.setInputType(InputType.TYPE_CLASS_TEXT); // Ввод текста
-        } else {
-            input.setHint("Введите ссылку");
-            input.setInputType(InputType.TYPE_TEXT_VARIATION_URI); // Ввод ссылки
-        }
+        // Добавление элементов в layout
+        layout.addView(input);
 
-        // Установка цветов для текста и подсказки
-        input.setHintTextColor(getResources().getColor(R.color.second));
-        input.setTextColor(getResources().getColor(R.color.text));
-
-        // Установка EditText в диалог
-        builder.setView(input);
+        builder.setView(layout);
 
         builder.setPositiveButton("Сохранить", (dialog, which) -> {
             String userInput = input.getText().toString().trim();
             if (!userInput.isEmpty()) {
-                // Формирование новой или обновленной ссылки
-                String link = socialNetwork.getUrlTemplate()
-                        .replace("{username}", userInput)
-                        .replace("{phone}", userInput);
+                String formattedLink;
 
-                socialNetwork.setLink(link); // Сохраняем обновленную ссылку
+                // Проверяем, содержит ли пользовательский ввод "http"
+                if (userInput.startsWith("http")) {
+                    if (userInput.contains(socialNetwork.getUrlTemplate().replace("{username}", "").replace("{phone}", ""))) {
+                        formattedLink = userInput; // Сохраняем как есть
+                    } else {
+                        Toast.makeText(this, "Ссылка должна быть от " + socialNetwork.getName(), Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                } else {
+                    // Подставляем в шаблон
+                    formattedLink = socialNetwork.getUrlTemplate()
+                            .replace("{username}", userInput)
+                            .replace("{phone}", userInput);
+                }
 
-                if(index != -1) addedSocialMedia.set(index, socialNetwork);
+                socialNetwork.setLink(formattedLink); // Сохраняем
+
+                int index = addedSocialMedia.indexOf(socialNetwork);
+                if (index != -1) addedSocialMedia.set(index, socialNetwork);
                 else addedSocialMedia.add(socialNetwork);
 
-                Toast.makeText(this, "Ссылка обновлена: " + link, Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Ссылка обновлена: " + formattedLink, Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "Поле не может быть пустым", Toast.LENGTH_SHORT).show();
             }
         });
-
-
 
         builder.setNegativeButton("Отмена", (dialog, which) -> dialog.cancel());
         builder.show();
@@ -2382,23 +2451,23 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
     private void setupRecyclerSocialMedia(RecyclerView recyclerView){
         List<SocialNetwork> socialNetworks = Arrays.asList(
-                new SocialNetwork("Ватсапп", R.drawable.whatsapp, "https://wa.me/{phone}"),
+                new SocialNetwork("Whatsapp", R.drawable.whatsapp, "https://wa.me/{phone}"),
                 new SocialNetwork("ВКонтакте", R.drawable.vk, "https://vk.com/{username}"),
                 new SocialNetwork("Вайбер", R.drawable.viber, "https://viber.click/{phone}"),
                 new SocialNetwork("Телеграм", R.drawable.telegram, "https://t.me/{username}"),
                 new SocialNetwork("Инстаграм", R.drawable.instagram, "https://instagram.com/{username}"),
-                new SocialNetwork("Фейсбук", R.drawable.facebook, "https://facebook.com/{username}"),
-                new SocialNetwork("Снапчат", R.drawable.snapchat, "https://snapchat.com/add/{username}"),
-                new SocialNetwork("Линкедин", R.drawable.linkedin, "https://linkedin.com/in/{username}"),
+                new SocialNetwork("Facebook", R.drawable.facebook, "https://facebook.com/{username}"),
+                new SocialNetwork("Snapchat", R.drawable.snapchat, "https://snapchat.com/add/{username}"),
+                new SocialNetwork("Linkedin", R.drawable.linkedin, "https://linkedin.com/in/{username}"),
                 new SocialNetwork("Одноклассники", R.drawable.ok, "https://ok.ru/profile/{username}"),
-                new SocialNetwork("Фигма", R.drawable.figma, "https://figma.com/@{username}"),
-                new SocialNetwork("Дрибл", R.drawable.dribbble, "https://dribbble.com/{username}"),
-                new SocialNetwork("ТикТок", R.drawable.tiktok, "https://www.tiktok.com/@{username}"),
-                new SocialNetwork("Дискорд", R.drawable.discord, "https://discord.com/users/{username}"),
-                new SocialNetwork("Скайп", R.drawable.skype, "skype:{username}?chat"),
-                new SocialNetwork("Эпик Геймс", R.drawable.epicgames, "https://www.epicgames.com/id/{username}"),
-                new SocialNetwork("Спотифай", R.drawable.spotify, "https://open.spotify.com/user/{username}"),
-                new SocialNetwork("Стим", R.drawable.steam, "https://steamcommunity.com/id/{username}")
+                new SocialNetwork("Figma", R.drawable.figma, "https://figma.com/@{username}"),
+                new SocialNetwork("Dribbble", R.drawable.dribbble, "https://dribbble.com/{username}"),
+                new SocialNetwork("TikTok", R.drawable.tiktok, "https://www.tiktok.com/@{username}"),
+                new SocialNetwork("Discord", R.drawable.discord, "https://discord.com/users/{username}"),
+                new SocialNetwork("Skype", R.drawable.skype, "skype:{username}?chat"),
+                new SocialNetwork("Epic Games", R.drawable.epicgames, "https://www.epicgames.com/id/{username}"),
+                new SocialNetwork("Spotify", R.drawable.spotify, "https://open.spotify.com/user/{username}"),
+                new SocialNetwork("Steam", R.drawable.steam, "https://steamcommunity.com/id/{username}")
         );
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
@@ -2811,6 +2880,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
         db.collection("business_cards").document(documentId)
                 .update(updatedMetadata)
                 .addOnSuccessListener(aVoid -> {
+                    hideLoadingDialog();
                     Log.d("Firestore", "Metadata updated successfully with ID: " + documentId);
                     Toast.makeText(this, "Визитка успешно обновлена", Toast.LENGTH_LONG).show();
                     Intent resultIntent = new Intent();
@@ -2818,6 +2888,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
                     finish(); // Закрываем `EditActivity`
                 })
                 .addOnFailureListener(e -> {
+                    hideLoadingDialog();
                     Log.e("Firestore", "Error updating metadata", e);
                 });
     }
@@ -2887,7 +2958,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
         prepareLayoutToExport();
 
-        Bitmap QRbitmap = QRCodeGenerator.generateQRCode("https://easybizcard/" + userId + "/" + cardId);
+        Bitmap QRbitmap = QRCodeGenerator.generateQRCode("https://easybizcardweb.onrender.com/" + userId + "/" + cardId);
         QRimage.setImageBitmap(QRbitmap);
         layoutContainer.addView(QRimage);
 
@@ -3023,7 +3094,6 @@ public class TemplateEditorActivity extends AppCompatActivity {
         dialog.show();
     }
 
-
     private File saveBitmapToFile(Bitmap bitmap) throws IOException {
         File directory = new File(getExternalFilesDir(Environment.DIRECTORY_PICTURES), "BusinessCards");
         if (!directory.exists()) {
@@ -3052,6 +3122,7 @@ public class TemplateEditorActivity extends AppCompatActivity {
 
 
     // ------------------ Export to PDF ---------------------------
+
 
     private void checkPermissionsAndGeneratePdf() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {

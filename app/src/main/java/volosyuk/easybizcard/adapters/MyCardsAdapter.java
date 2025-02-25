@@ -26,6 +26,7 @@ public class MyCardsAdapter extends RecyclerView.Adapter<MyCardsAdapter.MyCardsV
 
     private Context context;
     private List<BusinessCard> businessCards;
+    private FirebaseFirestore db;
 
     public MyCardsAdapter(Context context, List<BusinessCard> businessCards) {
         this.context = context;
@@ -36,13 +37,14 @@ public class MyCardsAdapter extends RecyclerView.Adapter<MyCardsAdapter.MyCardsV
     public MyCardsViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         // Инфляция макета для элемента списка
         View view = LayoutInflater.from(context).inflate(R.layout.item_business_card, parent, false);
+        db = FirebaseFirestore.getInstance();
         return new MyCardsViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(MyCardsViewHolder holder, int position) {
         FirebaseAuth mAuth =  FirebaseAuth.getInstance();
-        UserRepository userRepository = new UserRepository(FirebaseFirestore.getInstance(), mAuth);
+        UserRepository userRepository = new UserRepository(db, mAuth);
         BusinessCard card = businessCards.get(position);
 
         userRepository.isActiveUserAdmin().thenAccept(result -> {
@@ -75,9 +77,22 @@ public class MyCardsAdapter extends RecyclerView.Adapter<MyCardsAdapter.MyCardsV
         SimpleDateFormat sdf = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.getDefault());
         holder.cardDate.setText(sdf.format(card.getCreated_at()));
 
-        userRepository.getUserData().thenAccept(result -> {
-            holder.cardUserEmail.setText(result.getString("email"));
-        });
+        db.collection("users")
+                .document(card.getUser_id())
+                .get()
+                .addOnSuccessListener(documentSnapshot -> {
+                    if (documentSnapshot.exists()) {
+                        String email = documentSnapshot.getString("email");
+                        holder.cardUserEmail.setText(email != null ? email : "Не указан");
+                    } else {
+                        holder.cardUserEmail.setText("Пользователь не найден");
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    e.printStackTrace();
+                    holder.cardUserEmail.setText("Ошибка загрузки");
+                });
+
 
         // Добавляем обработчик клика на элемент
         holder.itemView.setOnClickListener(v -> {

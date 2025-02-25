@@ -176,6 +176,8 @@ public class LoginActivity extends AppCompatActivity {
             handler.removeCallbacks(countdownRunnable); // Сбрасываем предыдущий таймер
         }
 
+        countdownText.setVisibility(View.VISIBLE);
+
         countdownRunnable = new Runnable() {
             @Override
             public void run() {

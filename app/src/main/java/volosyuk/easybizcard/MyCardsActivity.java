@@ -60,10 +60,9 @@ public class MyCardsActivity extends AppCompatActivity {
         toProfile = findViewById(R.id.to_profile);
 
         toAdd.setOnClickListener(v ->{
-            Intent intent = new Intent(this, AddActivity.class);
+            Intent intent = new Intent(this, TemplateEditorActivity.class);
             startActivity(intent);
             overridePendingTransition(0, 0);
-            finish();
         });
 
         toScan.setOnClickListener(v ->{
@@ -177,6 +176,7 @@ public class MyCardsActivity extends AppCompatActivity {
                             hint.setVisibility(View.GONE);
                             adapter.notifyDataSetChanged();
                         } else {
+                            hint.setText("Вы ещё не создавали визиток");
                             Log.d("Firestore", "Нет визиток для текущего пользователя");
                         }
                     })

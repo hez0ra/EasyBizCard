@@ -67,7 +67,6 @@ public class QRCodeGenerator {
             Intent sendIntent = new Intent(Intent.ACTION_SEND);
             sendIntent.setType("image/png");
             sendIntent.putExtra(Intent.EXTRA_STREAM, qrCodeUri);
-            sendIntent.putExtra(Intent.EXTRA_TEXT, "Просмотри мою визитку в EasyBizCard");
 
             // Запускаем Intent с ожиданием результата
             activity.startActivityForResult(Intent.createChooser(sendIntent, "Send QR Code"), requestCode);

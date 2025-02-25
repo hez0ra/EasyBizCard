@@ -139,7 +139,8 @@ public class UserDetailActivity extends AppCompatActivity {
     }
 
     private void loadProfileImage() {
-        StorageReference userImageRef = storage.getReference().child("users/" + userId + "/profile/");
+        StorageReference storageRef = storage.getReference();
+        StorageReference userImageRef = storageRef.child("users/" + userId + "/profile/");
         userImageRef.getDownloadUrl()
                 .addOnSuccessListener(uri -> {
                     // Используем Picasso для загрузки изображения
